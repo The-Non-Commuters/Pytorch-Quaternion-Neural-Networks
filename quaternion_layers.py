@@ -62,14 +62,15 @@ class QuaternionTransposeConv(Module):
 
     def forward(self, input):
 
-        '''if self.rotation:
-            return quaternion_tranpose_conv_rotation(input, self.r_weight, self.i_weight, 
-                self.j_weight, self.k_weight, self.bias, self.stride, self.padding, 
-                self.output_padding, self.groups, self.dilatation)
-        else:'''
-        return quaternion_transpose_conv(input, self.r_weight, self.i_weight, self.j_weight,
-                                         self.k_weight, self.bias, self.stride, self.padding, self.output_padding,
-                                         self.groups, self.dilatation)
+        if self.rotation:
+            return quaternion_transpose_conv_rotation(input, self.r_weight, self.i_weight,
+                                                      self.j_weight, self.k_weight, self.bias, self.stride,
+                                                      self.padding,
+                                                      self.output_padding, self.groups, self.dilatation)
+        else:
+            return quaternion_transpose_conv(input, self.r_weight, self.i_weight, self.j_weight,
+                                             self.k_weight, self.bias, self.stride, self.padding, self.output_padding,
+                                             self.groups, self.dilatation)
 
     def __repr__(self):
         return self.__class__.__name__ + '(' \

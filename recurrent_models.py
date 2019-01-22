@@ -18,14 +18,14 @@ from quaternion_layers import *
 #
 
 class QRNN(nn.Module):
-    def __init__(self, feat_size, hidden_size, CUDA):
+    def __init__(self, feat_size, hidden_size, cuda):
         super(QRNN, self).__init__()
 
         # Reading options:
         self.input_dim = feat_size
         self.hidden_dim = hidden_size
         self.num_classes = feat_size
-        self.CUDA = CUDA
+        self.CUDA = cuda
 
         # List initialization (Not used, but could be if multiple layers)
         self.wx = QuaternionLinearAutograd(self.input_dim, self.hidden_dim)
@@ -53,7 +53,7 @@ class QRNN(nn.Module):
 
         out = []
 
-        # Navigate trough timesteps
+        # Navigate through time-steps
         for k in range(x.shape[0]):
             at = wx_out[k] + self.uh(h)
             h = at
@@ -65,7 +65,7 @@ class QRNN(nn.Module):
 
 
 class QLSTM(nn.Module):
-    def __init__(self, feat_size, hidden_size, CUDA):
+    def __init__(self, feat_size, hidden_size, cuda):
         super(QLSTM, self).__init__()
 
         # Reading options:
@@ -73,7 +73,7 @@ class QLSTM(nn.Module):
         self.act_gate = nn.Sigmoid()
         self.input_dim = feat_size
         self.hidden_dim = hidden_size
-        self.CUDA = CUDA
+        self.CUDA = cuda
 
         # +1 because feat_size = the number on the sequence, and the output one hot will also have
         # a blank dimension so FEAT_SIZE + 1 BLANK 
@@ -134,14 +134,14 @@ class QLSTM(nn.Module):
 
 
 class RNN(nn.Module):
-    def __init__(self, feat_size, hidden_size, CUDA):
+    def __init__(self, feat_size, hidden_size, cuda):
         super(RNN, self).__init__()
 
         # Reading options:
         self.input_dim = feat_size
         self.hidden_dim = hidden_size
         self.num_classes = feat_size
-        self.CUDA = CUDA
+        self.CUDA = cuda
 
         # List initialization (Not used, but could be if multiple layers)
         self.wx = nn.Linear(self.input_dim, self.hidden_dim)
@@ -181,7 +181,7 @@ class RNN(nn.Module):
 
 class LSTM(nn.Module):
 
-    def __init__(self, feat_size, hidden_size, CUDA):
+    def __init__(self, feat_size, hidden_size, cuda):
         super(LSTM, self).__init__()
 
         # Reading options:
@@ -189,7 +189,7 @@ class LSTM(nn.Module):
         self.act_gate = nn.Sigmoid()
         self.input_dim = feat_size
         self.hidden_dim = hidden_size
-        self.CUDA = CUDA
+        self.CUDA = cuda
 
         # +1 because feat_size = the number on the sequence, and the output one hot will also have
         # a blank dimension so FEAT_SIZE + 1 BLANK 

@@ -5,6 +5,7 @@
 # ORKIS, Aix-en-provence
 # October 2018
 ##########################################################
+
 from torch import nn
 
 from quaternion_layers import *
@@ -15,7 +16,7 @@ from quaternion_layers import *
 #
 
 
-class QCAE(nn.Module):
+class QCAE(nn.Module):  # Quaternion Convolutional AutoEncoder
 
     def __init__(self):
         super(QCAE, self).__init__()
@@ -42,17 +43,14 @@ class QCAE(nn.Module):
 
         return out
 
-    @staticmethod
-    def name():
-        return "QCAE"
+    def network_type(self):
+        return type(self).__name__
 
 
-class CAE(nn.Module):
+class CAE(nn.Module):  # Convolutional AutoEncoder
 
     def __init__(self):
         super(CAE, self).__init__()
-
-        self.name = 'CAE'
 
         self.act = nn.Hardtanh()
         self.output_act = nn.Hardtanh()
@@ -76,5 +74,5 @@ class CAE(nn.Module):
 
         return out
 
-    def name(self):
-        return self.name
+    def network_type(self):
+        return type(self).__name__

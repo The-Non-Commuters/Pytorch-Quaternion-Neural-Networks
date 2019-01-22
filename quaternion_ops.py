@@ -6,11 +6,12 @@
 # October 2018
 ##########################################################
 
-import numpy as np
 import torch
-import torch.nn.functional as F
-from numpy.random import RandomState
+import torch.nn.functional as f
 from torch.autograd import Variable
+
+import numpy as np
+from numpy.random import RandomState
 
 
 def check_input(input):
@@ -103,11 +104,11 @@ def quaternion_conv(input, r_weight, i_weight, j_weight, k_weight, bias, stride,
     cat_kernels_4_quaternion = torch.cat([cat_kernels_4_r, cat_kernels_4_i, cat_kernels_4_j, cat_kernels_4_k], dim=0)
 
     if input.dim() == 3:
-        convfunc = F.conv1d
+        convfunc = f.conv1d
     elif input.dim() == 4:
-        convfunc = F.conv2d
+        convfunc = f.conv2d
     elif input.dim() == 5:
-        convfunc = F.conv3d
+        convfunc = f.conv3d
     else:
         raise Exception("The convolutional input is either 3, 4 or 5 dimensions."
                         " input.dim = " + str(input.dim()))
@@ -118,7 +119,7 @@ def quaternion_conv(input, r_weight, i_weight, j_weight, k_weight, bias, stride,
 def quaternion_transpose_conv(input, r_weight, i_weight, j_weight, k_weight, bias, stride,
                               padding, output_padding, groups, dilatation):
     """
-    Applies a quaternion trasposed convolution to the incoming data:
+    Applies a quaternion transposed convolution to the incoming data:
 
     """
 
@@ -129,11 +130,42 @@ def quaternion_transpose_conv(input, r_weight, i_weight, j_weight, k_weight, bia
     cat_kernels_4_quaternion = torch.cat([cat_kernels_4_r, cat_kernels_4_i, cat_kernels_4_j, cat_kernels_4_k], dim=0)
 
     if input.dim() == 3:
-        convfunc = F.conv_transpose1d
+        convfunc = f.conv_transpose1d
     elif input.dim() == 4:
-        convfunc = F.conv_transpose2d
+        convfunc = f.conv_transpose2d
     elif input.dim() == 5:
-        convfunc = F.conv_transpose3d
+        convfunc = f.conv_transpose3d
+    else:
+        raise Exception("The convolutional input is either 3, 4 or 5 dimensions."
+                        " input.dim = " + str(input.dim()))
+
+    return convfunc(input, cat_kernels_4_quaternion, bias, stride, padding, output_padding, groups, dilatation)
+
+
+def quaternion_transpose_conv_rotation(input, r_weight, i_weight, j_weight, k_weight, bias, stride,
+                              padding, output_padding, groups, dilatation):
+
+    """
+    WORK IN PROGRESS ... NOT WORKING
+    """
+
+    """
+    Applies a quaternion transposed convolution to the incoming data:
+
+    """
+
+    cat_kernels_4_r = torch.cat([r_weight, -i_weight, -j_weight, -k_weight], dim=1)
+    cat_kernels_4_i = torch.cat([i_weight, r_weight, -k_weight, j_weight], dim=1)
+    cat_kernels_4_j = torch.cat([j_weight, k_weight, r_weight, -i_weight], dim=1)
+    cat_kernels_4_k = torch.cat([k_weight, -j_weight, i_weight, r_weight], dim=1)
+    cat_kernels_4_quaternion = torch.cat([cat_kernels_4_r, cat_kernels_4_i, cat_kernels_4_j, cat_kernels_4_k], dim=0)
+
+    if input.dim() == 3:
+        convfunc = f.conv_transpose1d
+    elif input.dim() == 4:
+        convfunc = f.conv_transpose2d
+    elif input.dim() == 5:
+        convfunc = f.conv_transpose3d
     else:
         raise Exception("The convolutional input is either 3, 4 or 5 dimensions."
                         " input.dim = " + str(input.dim()))
@@ -167,11 +199,11 @@ def quaternion_conv_rotation(input, r_weight, i_weight, j_weight, k_weight, bias
     cat_kernels_4_quaternion = torch.cat([cat_kernels_4_r, cat_kernels_4_i, cat_kernels_4_j, cat_kernels_4_k], dim=0)
 
     if input.dim() == 3:
-        convfunc = F.conv1d
+        convfunc = f.conv1d
     elif input.dim() == 4:
-        convfunc = F.conv2d
+        convfunc = f.conv2d
     elif input.dim() == 5:
-        convfunc = F.conv3d
+        convfunc = f.conv3d
     else:
         raise Exception("The convolutional input is either 3, 4 or 5 dimensions."
                         " input.dim = " + str(input.dim()))
@@ -429,7 +461,7 @@ def unitary_init(in_features, out_features, rng, kernel_size=None, criterion='gl
     weight_i = v_i * s
     weight_j = v_j * s
     weight_k = v_k * s
-    return (weight_r, weight_i, weight_j, weight_k)
+    return weight_r, weight_i, weight_j, weight_k
 
 
 def random_init(in_features, out_features, rng, kernel_size=None, criterion='glorot'):
@@ -471,7 +503,7 @@ def random_init(in_features, out_features, rng, kernel_size=None, criterion='glo
     weight_i = v_i * s
     weight_j = v_j * s
     weight_k = v_k * s
-    return (weight_r, weight_i, weight_j, weight_k)
+    return weight_r, weight_i, weight_j, weight_k
 
 
 def quaternion_init(in_features, out_features, rng, kernel_size=None, criterion='glorot'):
@@ -523,7 +555,7 @@ def quaternion_init(in_features, out_features, rng, kernel_size=None, criterion=
     weight_j = modulus * v_j * np.sin(phase)
     weight_k = modulus * v_k * np.sin(phase)
 
-    return (weight_r, weight_i, weight_j, weight_k)
+    return weight_r, weight_i, weight_j, weight_k
 
 
 def create_dropout_mask(dropout_p, size, rng, as_type, operation='linear'):
