@@ -7,6 +7,7 @@
 .idea/**/usage.statistics.xml
 .idea/**/dictionaries
 .idea/**/shelf
+.idea/**/other.xml
 
 # Generated files
 .idea/**/contentModel.xml
@@ -21,9 +22,11 @@
 .idea/**/dbnavigator.xml
 
 
+
 # File-based project format
 *.iws
 
 RES/*
 __pycache__/*
 *.pyc
+
