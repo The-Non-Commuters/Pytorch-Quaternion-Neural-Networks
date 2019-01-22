@@ -30,9 +30,8 @@ def check_input(input):
         )
 
 
-#
-# Getters
-#
+# Getters #
+
 def get_r(input):
     check_input(input)
     nb_hidden = input.size()[-1]
@@ -143,8 +142,7 @@ def quaternion_transpose_conv(input, r_weight, i_weight, j_weight, k_weight, bia
 
 
 def quaternion_transpose_conv_rotation(input, r_weight, i_weight, j_weight, k_weight, bias, stride,
-                              padding, output_padding, groups, dilatation):
-
+                                       padding, output_padding, groups, dilatation):
     """
     WORK IN PROGRESS ... NOT WORKING
     """
@@ -412,7 +410,7 @@ def hamilton_product(q0, q1):
 
 
 #
-# PARAMETERS INITIALIZATION 
+# PARAMETERS INITIALIZATION
 #
 
 def unitary_init(in_features, out_features, rng, kernel_size=None, criterion='glorot'):
@@ -571,15 +569,14 @@ def affect_init(r_weight, i_weight, j_weight, k_weight, init_func, rng, init_cri
     if r_weight.size() != i_weight.size() or r_weight.size() != j_weight.size() or \
             r_weight.size() != k_weight.size():
         raise ValueError('The real and imaginary weights '
-                         'should have the same size . Found: r:'
-                         + str(r_weight.size()) + ' i:'
-                         + str(i_weight.size()) + ' j:'
-                         + str(j_weight.size()) + ' k:'
-                         + str(k_weight.size()))
+                         'should have the same size. Found:'
+                         + ' r:' + str(r_weight.size())
+                         + ' i:' + str(i_weight.size())
+                         + ' j:' + str(j_weight.size())
+                         + ' k:' + str(k_weight.size()))
 
     elif r_weight.dim() != 2:
-        raise Exception('affect_init accepts only matrices. Found dimension = '
-                        + str(r_weight.dim()))
+        raise Exception('affect_init accepts only matrices. Found dimension = ' + str(r_weight.dim()))
     kernel_size = None
     r, i, j, k = init_func(r_weight.size(0), r_weight.size(1), rng, kernel_size, init_criterion)
     r, i, j, k = torch.from_numpy(r), torch.from_numpy(i), torch.from_numpy(j), torch.from_numpy(k)
@@ -594,13 +591,13 @@ def affect_init_conv(r_weight, i_weight, j_weight, k_weight, kernel_size, init_f
     if r_weight.size() != i_weight.size() or r_weight.size() != j_weight.size() or \
             r_weight.size() != k_weight.size():
         raise ValueError('The real and imaginary weights '
-                         'should have the same size . Found: r:'
-                         + str(r_weight.size()) + ' i:'
-                         + str(i_weight.size()) + ' j:'
-                         + str(j_weight.size()) + ' k:'
-                         + str(k_weight.size()))
+                         'should have the same size. Found:'
+                         + ' r:' + str(r_weight.size())
+                         + ' i:' + str(i_weight.size())
+                         + ' j:' + str(j_weight.size())
+                         + ' k:' + str(k_weight.size()))
 
-    elif 2 >= r_weight.dim():
+    elif r_weight.dim() <= 2:
         raise Exception('affect_conv_init accepts only tensors that have more than 2 dimensions. Found dimension = '
                         + str(r_weight.dim()))
 

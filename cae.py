@@ -1,22 +1,27 @@
 ##########################################################
-# pytorch-qnn v1.0                                     
+# pytorch-qnn v1.0
 # Titouan Parcollet
 # LIA, Université d'Avignon et des Pays du Vaucluse
 # ORKIS, Aix-en-provence
 # October 2018
 ##########################################################
 
-
-import os
-import shutil
-import sys
-
-import imageio
 import numpy as np
 import torch
 from torch import nn
 
 from convolutional_models import CAE, QCAE
+
+import os
+import shutil
+import sys
+import imageio
+
+# PARAMETERS #
+cuda = False
+num_epochs = 3000
+learning_rate = 0.0005
+generation_rate = 100  # One test picture will be generated every 'generation_rate'
 
 
 def rgb2gray(rgb):
@@ -24,16 +29,11 @@ def rgb2gray(rgb):
     return np.repeat(gray[:, :, np.newaxis], 3, axis=2)
 
 
-if len(sys.argv) > 1:
-    model = str(sys.argv[1])
-else:
+if len(sys.argv) != 2:
     print("Please provide a model : QCAE or CAE")
     exit(0)
 
-cuda = False
-num_epochs = 1000
-learning_rate = 0.0005
-generation_rate = 100  # One test picture will be generated every 'generation_rate'
+model = str(sys.argv[1])
 
 if model == 'QCAE':
     net = QCAE()
@@ -43,14 +43,11 @@ else:
 if cuda:
     net = net.cuda()
 
-#
-# MANAGING PICTURES
-#
+
+# MANAGING PICTURES #
 if os.path.exists('RES'):
     shutil.rmtree('RES')
 os.mkdir('RES')
-# .system('mkdir -p RES')
-# os.system('rm -rf RES/test_image*')
 
 train = rgb2gray(imageio.imread('KODAK/kodim05.png'))
 test = imageio.imread('KODAK/kodim23.png')
@@ -59,9 +56,7 @@ test = imageio.imread('KODAK/kodim23.png')
 train = train / 255
 test = test / 255
 
-#
-# HYPERPARAMETERS
-#
+# HYPERPARAMETERS #
 
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
