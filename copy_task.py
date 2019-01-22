@@ -20,7 +20,7 @@ from recurrent_models    import QRNN, RNN, LSTM, QLSTM
 # Convert to torch.Variable 
 #
 def tovar(x):
-    return Variable(torch.FloatTensor(x).cuda())
+    return Variable(torch.FloatTensor(x).cpu())
 
 def getTask(N_BATCH, SEQ_LENGTH, FEAT_SIZE, BLANK_SIZE, embedding):
     data   = []
@@ -87,7 +87,7 @@ if len(sys.argv) > 1:
 else:
     BLANK_SIZE = 25
 
-CUDA             = True
+CUDA             = False
 N_BATCH_TRAIN    = 10
 SEQ_LENGTH       = 10
 FEAT_SIZE        = 8
@@ -101,8 +101,8 @@ accs_r        = []
 accs_q        = []
 accs_test     = []
 
-net_r = LSTM(FEAT_SIZE, RNN_HIDDEN_SIZE, CUDA).cuda()
-net_q = QLSTM(FEAT_SIZE, QRNN_HIDDEN_SIZE, CUDA).cuda()
+net_r = LSTM(FEAT_SIZE, RNN_HIDDEN_SIZE, CUDA)
+net_q = QLSTM(FEAT_SIZE, QRNN_HIDDEN_SIZE, CUDA)
 
 emb   = nn.Embedding(FEAT_SIZE+2, FEAT_SIZE, max_norm=1.0)
 
