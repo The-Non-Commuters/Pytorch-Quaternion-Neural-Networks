@@ -28,6 +28,7 @@ EPOCHS = 100
 RNN_HIDDEN_SIZE = 40
 QRNN_HIDDEN_SIZE = 80
 
+
 # Convert to torch.Variable #
 def tovar(x):
     return Variable(torch.FloatTensor(x).cpu())
@@ -93,8 +94,6 @@ def get_task(n_batch, seq_length, feat_size, blank_size, embedding):
 # DEFINING THE TASK
 #
 
-
-
 def main(argv):
 
     if len(argv) > 1:
@@ -121,12 +120,7 @@ def main(argv):
     print("(RNN)  Number of trainable parameters : " + str(nb_param_r))
     print("(QRNN) Number of trainable parameters : " + str(nb_param_q))
 
-    #
-    # TRAINING LOOP
-    #
-
-    break_r = False
-    break_q = False
+    # TRAINING LOOP #
 
     for epoch in range(EPOCHS):
 
