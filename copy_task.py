@@ -11,42 +11,52 @@ import torch.nn as nn
 import torch.optim
 from torch.autograd import Variable
 
-import numpy as np
-
 from recurrent_models import LSTM, QLSTM
 
-import sys
+import numpy as np
 
+import sys
+import os
+import shutil
+
+# PARAMETERS #
+CUDA = False
+N_BATCH_TRAIN = 10
+SEQ_LENGTH = 10
+FEAT_SIZE = 8
+EPOCHS = 100
+RNN_HIDDEN_SIZE = 40
+QRNN_HIDDEN_SIZE = 80
 
 # Convert to torch.Variable #
 def tovar(x):
     return Variable(torch.FloatTensor(x).cpu())
 
 
-def get_task(N_BATCH, SEQ_LENGTH, FEAT_SIZE, BLANK_SIZE, embedding):
+def get_task(n_batch, seq_length, feat_size, blank_size, embedding):
     data = []
     lab = []
     seq = []
     target = []
 
-    for i in range(N_BATCH):
+    for i in range(n_batch):
 
         # Target values of blank and delim
-        blank = FEAT_SIZE
-        delim = FEAT_SIZE + 1
+        blank = feat_size
+        delim = feat_size + 1
 
         # Embedding
-        blank_emb = FEAT_SIZE
+        blank_emb = feat_size
         blank_emb = torch.tensor(blank_emb, dtype=torch.long)
         blank_emb = embedding(blank_emb).data.numpy()
-        delim_emb = FEAT_SIZE + 1
+        delim_emb = feat_size + 1
         delim_emb = torch.tensor(delim_emb, dtype=torch.long)
         delim_emb = embedding(delim_emb).data.numpy()
 
         random_index_list = []
 
-        for j in range(SEQ_LENGTH):
-            random = np.random.randint(FEAT_SIZE, size=1)
+        for j in range(seq_length):
+            random = np.random.randint(feat_size, size=1)
             feat = torch.tensor(random, dtype=torch.long)
             feat = embedding(feat).data.numpy()[0]
             random_index_list.append(random)
@@ -55,7 +65,7 @@ def get_task(N_BATCH, SEQ_LENGTH, FEAT_SIZE, BLANK_SIZE, embedding):
             target.append(blank)
 
             # BLANK
-        for j in range(BLANK_SIZE - 1):
+        for j in range(blank_size - 1):
             seq.append(blank_emb)
             target.append(blank)
 
@@ -88,32 +98,25 @@ if len(sys.argv) > 1:
 else:
     BLANK_SIZE = 25
 
-CUDA = False
-N_BATCH_TRAIN = 10
-SEQ_LENGTH = 10
-FEAT_SIZE = 8
-EPOCHS = 2000
-RNN_HIDDEN_SIZE = 40
-QRNN_HIDDEN_SIZE = 80
-
 losses_r = []
 losses_q = []
 accs_r = []
 accs_q = []
 accs_test = []
 
-net_r = LSTM(FEAT_SIZE, RNN_HIDDEN_SIZE, CUDA)
-net_q = QLSTM(FEAT_SIZE, QRNN_HIDDEN_SIZE, CUDA)
+net_r = LSTM(FEAT_SIZE, RNN_HIDDEN_SIZE, CUDA).cpu()
+net_q = QLSTM(FEAT_SIZE, QRNN_HIDDEN_SIZE, CUDA).cpu()
 
 emb = nn.Embedding(FEAT_SIZE + 2, FEAT_SIZE, max_norm=1.0)
 
-nb_param_q = sum(p.numel() for p in net_q.parameters() if p.requires_grad)
 nb_param_r = sum(p.numel() for p in net_r.parameters() if p.requires_grad)
+nb_param_q = sum(p.numel() for p in net_q.parameters() if p.requires_grad)
+
 
 print("QRNN & RNN Copy Task - Titouan Parcollet - LIA, ORKIS")
 print("Models Infos --------------------")
-print("(QRNN) Number of trainable parameters : " + str(nb_param_q))
 print("(RNN)  Number of trainable parameters : " + str(nb_param_r))
+print("(QRNN) Number of trainable parameters : " + str(nb_param_q))
 
 #
 # TRAINING LOOP
@@ -134,7 +137,7 @@ for epoch in range(EPOCHS):
     train = train.reshape((BLANK_SIZE + (2 * SEQ_LENGTH), N_BATCH_TRAIN, FEAT_SIZE))
 
     train_var = tovar(train)
-    train_target_var = tovar(train_target)
+    train_target_var = tovar(train_target.astype(np.float32))
 
     # NN Training
     net_r.zero_grad()
@@ -191,11 +194,16 @@ for epoch in range(EPOCHS):
             acc)
         print(string)
 
+
+if os.path.exists('RES'):
+    shutil.rmtree('RES')
+os.mkdir('RES')
+
 print("Training Ended - Saving Acc and losses in RES")
 
-np.savetxt("RES/memory_task_acc_q_" + str(BLANK_SIZE) + ".txt", accs_q)
 np.savetxt("RES/memory_task_acc_r_" + str(BLANK_SIZE) + ".txt", accs_r)
-np.savetxt("RES/memory_task_loss_q_" + str(BLANK_SIZE) + ".txt", losses_q)
+np.savetxt("RES/memory_task_acc_q_" + str(BLANK_SIZE) + ".txt", accs_q)
 np.savetxt("RES/memory_task_loss_r_" + str(BLANK_SIZE) + ".txt", losses_r)
+np.savetxt("RES/memory_task_loss_q_" + str(BLANK_SIZE) + ".txt", losses_q)
 
 print("Done ! That's All Folks ;) !")
