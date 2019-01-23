@@ -93,117 +93,125 @@ def get_task(n_batch, seq_length, feat_size, blank_size, embedding):
 # DEFINING THE TASK
 #
 
-if len(sys.argv) > 1:
-    BLANK_SIZE = int(sys.argv[1])
-else:
-    BLANK_SIZE = 25
-
-losses_r = []
-losses_q = []
-accs_r = []
-accs_q = []
-accs_test = []
-
-net_r = LSTM(FEAT_SIZE, RNN_HIDDEN_SIZE, CUDA).cpu()
-net_q = QLSTM(FEAT_SIZE, QRNN_HIDDEN_SIZE, CUDA).cpu()
-
-emb = nn.Embedding(FEAT_SIZE + 2, FEAT_SIZE, max_norm=1.0)
-
-nb_param_r = sum(p.numel() for p in net_r.parameters() if p.requires_grad)
-nb_param_q = sum(p.numel() for p in net_q.parameters() if p.requires_grad)
 
 
-print("QRNN & RNN Copy Task - Titouan Parcollet - LIA, ORKIS")
-print("Models Infos --------------------")
-print("(RNN)  Number of trainable parameters : " + str(nb_param_r))
-print("(QRNN) Number of trainable parameters : " + str(nb_param_q))
+def main(argv):
 
-#
-# TRAINING LOOP
-#
+    if len(argv) > 1:
+        BLANK_SIZE = int(argv[1])
+    else:
+        BLANK_SIZE = 25
 
-break_r = False
-break_q = False
+    losses_r = []
+    losses_q = []
+    accs_r = []
+    accs_q = []
+    accs_test = []
 
-for epoch in range(EPOCHS):
+    net_r = LSTM(FEAT_SIZE, RNN_HIDDEN_SIZE, CUDA).cpu()
+    net_q = QLSTM(FEAT_SIZE, QRNN_HIDDEN_SIZE, CUDA).cpu()
+
+    emb = nn.Embedding(FEAT_SIZE + 2, FEAT_SIZE, max_norm=1.0)
+
+    nb_param_r = sum(p.numel() for p in net_r.parameters() if p.requires_grad)
+    nb_param_q = sum(p.numel() for p in net_q.parameters() if p.requires_grad)
+
+    print("QRNN & RNN Copy Task - Titouan Parcollet - LIA, ORKIS")
+    print("Models Infos --------------------")
+    print("(RNN)  Number of trainable parameters : " + str(nb_param_r))
+    print("(QRNN) Number of trainable parameters : " + str(nb_param_q))
 
     #
-    # The input sequence size is 2 times the sequence length + number_of_blank - 1 + 1 
-    # (+ 1 for the delimiter). We generate N_BATCH_TRAIN new sequences each epoch
+    # TRAINING LOOP
     #
-    train, train_target = get_task(N_BATCH_TRAIN, SEQ_LENGTH, FEAT_SIZE, BLANK_SIZE, emb)
 
-    # Train shape must be (SEQ_LENGTH, BATCH_SIZE, FEATURE_SIZE) for QLSTM and LSTM
-    train = train.reshape((BLANK_SIZE + (2 * SEQ_LENGTH), N_BATCH_TRAIN, FEAT_SIZE))
+    break_r = False
+    break_q = False
 
-    train_var = tovar(train)
-    train_target_var = tovar(train_target.astype(np.float32))
+    for epoch in range(EPOCHS):
 
-    # NN Training
-    net_r.zero_grad()
-    p = net_r.forward(train_var)
+        #
+        # The input sequence size is 2 times the sequence length + number_of_blank - 1 + 1
+        # (+ 1 for the delimiter). We generate N_BATCH_TRAIN new sequences each epoch
+        #
+        train, train_target = get_task(N_BATCH_TRAIN, SEQ_LENGTH, FEAT_SIZE, BLANK_SIZE, emb)
 
-    # Pred. shape : (SEQ_LENGTH, BATCH_SIZE, FEATURE_SIZE) to (SEQ_LENGTH * BATCH_SIZE, FEATURE_SIZE)
-    predictions = p.view(-1, FEAT_SIZE + 1)
+        # Train shape must be (SEQ_LENGTH, BATCH_SIZE, FEATURE_SIZE) for QLSTM and LSTM
+        train = train.reshape((BLANK_SIZE + (2 * SEQ_LENGTH), N_BATCH_TRAIN, FEAT_SIZE))
 
-    # Target shape to (BATCH_SIZE)
-    targets = train_target_var.view(-1)
-    loss = nn.CrossEntropyLoss()
-    val_loss = loss(predictions, targets.long())
+        train_var = tovar(train)
+        train_target_var = tovar(train_target.astype(np.float32))
 
-    val_loss.backward()
-    net_r.adam.step()
+        # NN Training
+        net_r.zero_grad()
+        p = net_r.forward(train_var)
 
-    # Train ACC and LOSS
-    p = p.cpu().data.numpy()
-    shape = np.argmax(p, axis=2).shape
-    p = np.reshape(np.argmax(p, axis=2), shape[0] * shape[1])
-    targets = targets.cpu().data.numpy()
-    acc = np.sum(p == targets) / train_target.size
+        # Pred. shape : (SEQ_LENGTH, BATCH_SIZE, FEATURE_SIZE) to (SEQ_LENGTH * BATCH_SIZE, FEATURE_SIZE)
+        predictions = p.view(-1, FEAT_SIZE + 1)
 
-    if (epoch % 5) == 0:
-        accs_r.append(acc)
-        losses_r.append(float(val_loss.data))
-    if (epoch % 10) == 0:
-        string = " (NN) It : " + str(epoch) + " | Train Loss = " + str(float(val_loss.data)) + " | Train Acc = " + str(
-            acc)
-        print(string)
+        # Target shape to (BATCH_SIZE)
+        targets = train_target_var.view(-1)
+        loss = nn.CrossEntropyLoss()
+        val_loss = loss(predictions, targets.long())
 
-    # QNN Training
-    net_q.zero_grad()
-    p = net_q.forward(train_var)
-    predictions = p.view(-1, FEAT_SIZE + 1)
-    targets = train_target_var.view(-1)
-    loss = nn.CrossEntropyLoss()
-    val_loss = loss(predictions, targets.long())
+        val_loss.backward()
+        net_r.adam.step()
 
-    val_loss.backward()
-    net_q.adam.step()
+        # Train ACC and LOSS
+        p = p.cpu().data.numpy()
+        shape = np.argmax(p, axis=2).shape
+        p = np.reshape(np.argmax(p, axis=2), shape[0] * shape[1])
+        targets = targets.cpu().data.numpy()
+        acc = np.sum(p == targets) / train_target.size
 
-    p = p.cpu().data.numpy()
-    shape = np.argmax(p, axis=2).shape
-    p = np.reshape(np.argmax(p, axis=2), shape[0] * shape[1])
-    targets = targets.cpu().data.numpy()
-    acc = np.sum(p == targets) / train_target.size
+        if (epoch % 5) == 0:
+            accs_r.append(acc)
+            losses_r.append(float(val_loss.data))
+        if (epoch % 10) == 0:
+            string = " (NN) It : " + str(epoch) + " | Train Loss = " + str(
+                float(val_loss.data)) + " | Train Acc = " + str(
+                acc)
+            print(string)
 
-    if (epoch % 5) == 0:
-        losses_q.append(float(val_loss.data))
-        accs_q.append(acc)
-    if (epoch % 10) == 0:
-        string = "(QNN) It : " + str(epoch) + " | Train Loss = " + str(float(val_loss.data)) + " | Train Acc = " + str(
-            acc)
-        print(string)
+        # QNN Training
+        net_q.zero_grad()
+        p = net_q.forward(train_var)
+        predictions = p.view(-1, FEAT_SIZE + 1)
+        targets = train_target_var.view(-1)
+        loss = nn.CrossEntropyLoss()
+        val_loss = loss(predictions, targets.long())
+
+        val_loss.backward()
+        net_q.adam.step()
+
+        p = p.cpu().data.numpy()
+        shape = np.argmax(p, axis=2).shape
+        p = np.reshape(np.argmax(p, axis=2), shape[0] * shape[1])
+        targets = targets.cpu().data.numpy()
+        acc = np.sum(p == targets) / train_target.size
+
+        if (epoch % 5) == 0:
+            losses_q.append(float(val_loss.data))
+            accs_q.append(acc)
+        if (epoch % 10) == 0:
+            string = "(QNN) It : " + str(epoch) + " | Train Loss = " + str(
+                float(val_loss.data)) + " | Train Acc = " + str(
+                acc)
+            print(string)
+
+    if os.path.exists('RES'):
+        shutil.rmtree('RES')
+    os.mkdir('RES')
+
+    print("Training Ended - Saving Acc and losses in RES")
+
+    np.savetxt("RES/memory_task_acc_r_" + str(BLANK_SIZE) + ".txt", accs_r)
+    np.savetxt("RES/memory_task_acc_q_" + str(BLANK_SIZE) + ".txt", accs_q)
+    np.savetxt("RES/memory_task_loss_r_" + str(BLANK_SIZE) + ".txt", losses_r)
+    np.savetxt("RES/memory_task_loss_q_" + str(BLANK_SIZE) + ".txt", losses_q)
+
+    print("Done ! That's All Folks ;) !")
 
 
-if os.path.exists('RES'):
-    shutil.rmtree('RES')
-os.mkdir('RES')
-
-print("Training Ended - Saving Acc and losses in RES")
-
-np.savetxt("RES/memory_task_acc_r_" + str(BLANK_SIZE) + ".txt", accs_r)
-np.savetxt("RES/memory_task_acc_q_" + str(BLANK_SIZE) + ".txt", accs_q)
-np.savetxt("RES/memory_task_loss_r_" + str(BLANK_SIZE) + ".txt", losses_r)
-np.savetxt("RES/memory_task_loss_q_" + str(BLANK_SIZE) + ".txt", losses_q)
-
-print("Done ! That's All Folks ;) !")
+if __name__ == "__main__":
+    main(sys.argv)
