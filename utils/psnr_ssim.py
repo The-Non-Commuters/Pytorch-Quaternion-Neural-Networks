@@ -21,6 +21,9 @@ def psnr(img1, img2):
     return 20 * math.log10(pixel_max / math.sqrt(mse))
 
 
+if len(sys.argv) != 3:
+    raise Exception("Request 2 image-path arguments. Found: " + str(len(sys.argv)-1))
+
 original = imageio.imread(sys.argv[1])
 contrast = imageio.imread(sys.argv[2])
 
