@@ -82,6 +82,7 @@ def main(argv):
         test = np.reshape(test, (1, test.shape[0], test.shape[1], test.shape[2]))
 
     else:
+
         # Channel first
         train = np.transpose(train, (2, 0, 1))
         # Add batch_size dim

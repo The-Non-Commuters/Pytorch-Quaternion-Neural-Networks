@@ -561,8 +561,7 @@ def create_dropout_mask(dropout_p, size, rng, as_type, operation='linear'):
         mask = rng.binomial(n=1, p=1 - dropout_p, size=size)
         return Variable(torch.from_numpy(mask).type(as_type))
     else:
-        raise Exception("create_dropout_mask accepts only 'linear'. Found operation = "
-                        + str(operation))
+        raise Exception("create_dropout_mask accepts only 'linear'. Found operation = " + str(operation))
 
 
 def affect_init(r_weight, i_weight, j_weight, k_weight, init_func, rng, init_criterion):

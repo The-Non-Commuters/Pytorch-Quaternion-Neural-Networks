@@ -9,7 +9,6 @@
 import torch
 import torch.nn as nn
 import torch.optim
-from torch.autograd import Variable
 
 from recurrent_models import LSTM, QLSTM
 
@@ -27,11 +26,6 @@ FEAT_SIZE = 8
 EPOCHS = 100
 RNN_HIDDEN_SIZE = 40
 QRNN_HIDDEN_SIZE = 80
-
-
-# Convert to torch.Variable #
-def tovar(x):
-    return Variable(torch.FloatTensor(x).cpu())
 
 
 def get_task(n_batch, seq_length, feat_size, blank_size, embedding):
@@ -133,8 +127,8 @@ def main(argv):
         # Train shape must be (SEQ_LENGTH, BATCH_SIZE, FEATURE_SIZE) for QLSTM and LSTM
         train = train.reshape((BLANK_SIZE + (2 * SEQ_LENGTH), N_BATCH_TRAIN, FEAT_SIZE))
 
-        train_var = tovar(train)
-        train_target_var = tovar(train_target.astype(np.float32))
+        train_var = torch.FloatTensor(train).cpu()
+        train_target_var = torch.FloatTensor(train_target.astype(np.float32))
 
         # NN Training
         net_r.zero_grad()
