@@ -324,6 +324,9 @@ def train():
 
         for batch_index, (data, target) in enumerate(train_set):
 
+            data.to(device)
+            target.to(device)
+
             if use_quaternion_variant:
                 data = expand_input(data, 'vector_RGB')
 
