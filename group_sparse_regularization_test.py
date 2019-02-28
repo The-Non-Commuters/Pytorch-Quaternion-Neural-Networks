@@ -370,9 +370,9 @@ def test():
 
 def inference(raw_image):
     raw_image = np.expand_dims(raw_image, axis=0)
-    image_tensor = torch.from_numpy(raw_image).unsqueeze_(0).to(device)
+    image_tensor = torch.from_numpy(raw_image).unsqueeze_(0)
     if use_quaternion_variant:
-        image_tensor = expand_input(image_tensor)
+        image_tensor = expand_input(image_tensor).to(device)
     network.eval()
     output = network(image_tensor)
     index = output.data.cpu().numpy().argmax()
