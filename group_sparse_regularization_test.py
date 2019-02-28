@@ -32,7 +32,7 @@ dataset = 'CIFAR10'
 log_interval = 10
 
 # HYPER PARAMETERS #
-n_epochs = 20
+n_epochs = 100
 learning_rate = 0.001
 loss_criterion = F.cross_entropy  # before F.nll_loss (Negative log-likelihood loss)
 batch_size_train = 200
@@ -102,13 +102,13 @@ class CIFARQConvNet(nn.Module):  # Quaternion CNN
     def __init__(self):
         super(CIFARQConvNet, self).__init__()
         #  self.conv1 = nn.Conv2d(1, 4, kernel_size=5)  # input
-        self.conv2 = QuaternionConv(4, 32, kernel_size=3, stride=1, padding=1, bias=False)
-        self.conv3 = QuaternionConv(32, 64, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv2 = QuaternionConv(4, 32, kernel_size=3, stride=1, padding=1)
+        self.conv3 = QuaternionConv(32, 64, kernel_size=3, stride=1, padding=1)
         self.conv2_drop1 = nn.Dropout2d()
-        self.conv4 = QuaternionConv(64, 128, kernel_size=5, stride=1, padding=1, bias=False)
-        self.conv5 = QuaternionConv(128, 256, kernel_size=5, stride=1, padding=1, bias=False)
+        self.conv4 = QuaternionConv(64, 128, kernel_size=5, stride=1, padding=1)
+        self.conv5 = QuaternionConv(128, 256, kernel_size=5, stride=1, padding=1)
         self.conv2_drop2 = nn.Dropout2d()
-        self.fc1 = QuaternionLinear(1024, 40, bias=False)
+        self.fc1 = QuaternionLinear(1024, 40)
         # self.fc2 = QuaternionLinear(80, 40)
         self.fc2 = nn.Linear(40, 10)
 
@@ -330,7 +330,7 @@ def train():
 
             optimizer.zero_grad()
             output = network(data)  # Forward pass
-            loss = loss_criterion(output, target) + regularization_factor * regularization('L2')
+            loss = loss_criterion(output, target) + regularization_factor * regularization()
             loss.backward()  # Backward pass
             optimizer.step()  # Optimize
 
