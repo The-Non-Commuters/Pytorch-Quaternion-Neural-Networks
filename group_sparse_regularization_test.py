@@ -357,7 +357,7 @@ def test():
 
             if use_quaternion_variant:
                 data = expand_input(data, 'vector_RGB')
-            output = network(data)
+            output = network(data).to(device)
             test_loss += loss_criterion(output, target, reduction='sum').item()
             pred = output.data.max(1, keepdim=True)[1]
             correct += pred.eq(target.data.view_as(pred)).sum()
