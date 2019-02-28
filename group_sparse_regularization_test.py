@@ -32,7 +32,7 @@ dataset = 'CIFAR10'
 log_interval = 10
 
 # HYPER PARAMETERS #
-n_epochs = 1
+n_epochs = 5
 learning_rate = 0.005
 loss_criterion = F.cross_entropy  # before F.nll_loss (Negative log-likelihood loss)
 batch_size_train = 200
@@ -370,12 +370,12 @@ def test():
 
 def inference(raw_image):
     raw_image = np.expand_dims(raw_image, axis=0)
-    image_tensor = torch.from_numpy(raw_image).unsqueeze_(0)
+    image_tensor = torch.from_numpy(raw_image).unsqueeze_(0).to(device)
     if use_quaternion_variant:
         image_tensor = expand_input(image_tensor)
     network.eval()
     output = network(image_tensor)
-    index = output.data.numpy().argmax()
+    index = output.data.cpu().numpy().argmax()
     return index
 
 
