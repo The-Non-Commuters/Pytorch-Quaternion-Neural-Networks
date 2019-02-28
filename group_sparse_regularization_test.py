@@ -331,7 +331,7 @@ def train():
                 data = expand_input(data, 'vector_RGB')
 
             optimizer.zero_grad()
-            output = network(data)  # Forward pass
+            output = network(data).to(device)  # Forward pass
             loss = (loss_criterion(output, target) + regularization_factor * regularization('Group L1')).to(device)
             loss.backward()  # Backward pass
             optimizer.step()  # Optimize
