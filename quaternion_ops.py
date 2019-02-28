@@ -7,7 +7,7 @@
 ##########################################################
 
 import torch
-import torch.nn.functional as f
+import torch.nn.functional as F
 from torch.autograd import Variable
 
 import numpy as np
@@ -103,11 +103,11 @@ def quaternion_conv(input, r_weight, i_weight, j_weight, k_weight, bias, stride,
     cat_kernels_4_quaternion = torch.cat([cat_kernels_4_r, cat_kernels_4_i, cat_kernels_4_j, cat_kernels_4_k], dim=0)
 
     if input.dim() == 3:
-        convfunc = f.conv1d
+        convfunc = F.conv1d
     elif input.dim() == 4:
-        convfunc = f.conv2d
+        convfunc = F.conv2d
     elif input.dim() == 5:
-        convfunc = f.conv3d
+        convfunc = F.conv3d
     else:
         raise Exception("The convolutional input is either 3, 4 or 5 dimensions."
                         " input.dim = " + str(input.dim()))
@@ -129,11 +129,11 @@ def quaternion_transpose_conv(input, r_weight, i_weight, j_weight, k_weight, bia
     cat_kernels_4_quaternion = torch.cat([cat_kernels_4_r, cat_kernels_4_i, cat_kernels_4_j, cat_kernels_4_k], dim=0)
 
     if input.dim() == 3:
-        convfunc = f.conv_transpose1d
+        convfunc = F.conv_transpose1d
     elif input.dim() == 4:
-        convfunc = f.conv_transpose2d
+        convfunc = F.conv_transpose2d
     elif input.dim() == 5:
-        convfunc = f.conv_transpose3d
+        convfunc = F.conv_transpose3d
     else:
         raise Exception("The convolutional input is either 3, 4 or 5 dimensions."
                         " input.dim = " + str(input.dim()))
@@ -159,11 +159,11 @@ def quaternion_transpose_conv_rotation(input, r_weight, i_weight, j_weight, k_we
     cat_kernels_4_quaternion = torch.cat([cat_kernels_4_r, cat_kernels_4_i, cat_kernels_4_j, cat_kernels_4_k], dim=0)
 
     if input.dim() == 3:
-        convfunc = f.conv_transpose1d
+        convfunc = F.conv_transpose1d
     elif input.dim() == 4:
-        convfunc = f.conv_transpose2d
+        convfunc = F.conv_transpose2d
     elif input.dim() == 5:
-        convfunc = f.conv_transpose3d
+        convfunc = F.conv_transpose3d
     else:
         raise Exception("The convolutional input is either 3, 4 or 5 dimensions."
                         " input.dim = " + str(input.dim()))
@@ -197,11 +197,11 @@ def quaternion_conv_rotation(input, r_weight, i_weight, j_weight, k_weight, bias
     cat_kernels_4_quaternion = torch.cat([cat_kernels_4_r, cat_kernels_4_i, cat_kernels_4_j, cat_kernels_4_k], dim=0)
 
     if input.dim() == 3:
-        convfunc = f.conv1d
+        convfunc = F.conv1d
     elif input.dim() == 4:
-        convfunc = f.conv2d
+        convfunc = F.conv2d
     elif input.dim() == 5:
-        convfunc = f.conv3d
+        convfunc = F.conv3d
     else:
         raise Exception("The convolutional input is either 3, 4 or 5 dimensions."
                         " input.dim = " + str(input.dim()))

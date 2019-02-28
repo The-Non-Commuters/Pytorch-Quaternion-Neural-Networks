@@ -9,7 +9,6 @@
 from torch.nn import Module
 from torch.nn.parameter import Parameter
 
-# from torch.nn._functions.rnn import Recurrent, variable_recurrent_factory
 from quaternion_ops import *
 
 
