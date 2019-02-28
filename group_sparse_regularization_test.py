@@ -351,6 +351,10 @@ def test():
     correct = 0
     with torch.no_grad():
         for data, target in test_set:
+
+            data.to(device)
+            target.to(device)
+
             if use_quaternion_variant:
                 data = expand_input(data, 'vector_RGB')
             output = network(data)
