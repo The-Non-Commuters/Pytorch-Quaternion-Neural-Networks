@@ -32,7 +32,7 @@ dataset = 'CIFAR10'
 log_interval = 10
 
 # HYPER PARAMETERS #
-n_epochs = 5
+n_epochs = 1
 learning_rate = 0.005
 loss_criterion = F.cross_entropy  # before F.nll_loss (Negative log-likelihood loss)
 batch_size_train = 200
