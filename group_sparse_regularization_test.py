@@ -32,8 +32,8 @@ dataset = 'CIFAR10'
 log_interval = 10
 
 # HYPER PARAMETERS #
-n_epochs = 1
-learning_rate = 0.005
+n_epochs = 2
+learning_rate = 0.001
 loss_criterion = F.cross_entropy  # before F.nll_loss (Negative log-likelihood loss)
 batch_size_train = 200
 batch_size_test = 1000
@@ -42,7 +42,6 @@ regularization_factor = 0.01
 regularizers = {
     'L1': lambda param: torch.sum(torch.abs(param)),
     'L2': lambda param: torch.sum(param ** 2),
-    # 'Group L1': lambda param: torch.sum(torch.sqrt(torch.abs(param[1])) * torch.sqrt(torch.sum(param[1] ** 2))),
     # al massimo è torch.abs(param.shape[1]) e non torch.abs(param[1])
     'Group L1': lambda param: torch.sum(torch.sqrt(torch.abs(param[1])) * torch.sqrt(torch.sum(param[1] ** 2))),
     'Sparse GL1': lambda param: regularizers['Group L1'](param) + regularizers['L1'](param)
@@ -320,19 +319,18 @@ def train():
     # TRAIN LOOP #
     for epoch in range(n_epochs):
 
-        test()
+        #test()
 
         for batch_index, (data, target) in enumerate(train_set):
 
             if use_quaternion_variant:
                 data = expand_input(data, 'vector_RGB')
 
-            data = data.to(device)
-            target = target.to(device)
+            data, target = data.to(device), target.to(device)
 
             optimizer.zero_grad()
-            output = network(data).to(device)  # Forward pass
-            loss = (loss_criterion(output, target) + regularization_factor * regularization('Group L1')).to(device)
+            output = network(data)  # Forward pass
+            loss = loss_criterion(output, target) + regularization_factor * regularization('Group L1')
             loss.backward()  # Backward pass
             optimizer.step()  # Optimize
 
@@ -343,7 +341,7 @@ def train():
                 train_losses.append(loss.item())
                 train_counter.append((batch_index * batch_size_train) + (epoch * len(train_set.dataset)))
 
-    test()
+    #test()
 
 
 def test():
@@ -355,10 +353,9 @@ def test():
             if use_quaternion_variant:
                 data = expand_input(data, 'vector_RGB')
 
-            data = data.to(device)
-            target = target.to(device)
+            data, target = data.to(device), target.to(device)
 
-            output = network(data).to(device)
+            output = network(data)
             test_loss += loss_criterion(output, target, reduction='sum').item()
             pred = output.data.max(1, keepdim=True)[1]
             correct += pred.eq(target.data.view_as(pred)).sum()
@@ -417,7 +414,7 @@ else:
 network = network.to(device)
 
 print('Device used: ' + device.type)
-print('Variant: ' + network.network_type())
+print('Network variant: ' + network.network_type())
 print('Number of trainable parameters: ' + str(count_trainable_parameters()))
 
 optimizer = optim.Adam(network.parameters(), lr=learning_rate)
