@@ -330,7 +330,7 @@ def train():
 
             optimizer.zero_grad()
             output = network(data)  # Forward pass
-            loss = loss_criterion(output, target) + regularization_factor * regularization(None)
+            loss = loss_criterion(output, target) + regularization_factor * regularization('L1')
             loss.backward()  # Backward pass
             optimizer.step()  # Optimize
 
