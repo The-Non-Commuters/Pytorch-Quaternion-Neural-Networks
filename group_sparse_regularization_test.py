@@ -324,11 +324,11 @@ def train():
 
         for batch_index, (data, target) in enumerate(train_set):
 
-            data = data.to(device)
-            target = target.to(device)
-
             if use_quaternion_variant:
                 data = expand_input(data, 'vector_RGB')
+
+            data = data.to(device)
+            target = target.to(device)
 
             optimizer.zero_grad()
             output = network(data).to(device)  # Forward pass
@@ -352,11 +352,12 @@ def test():
     with torch.no_grad():
         for data, target in test_set:
 
+            if use_quaternion_variant:
+                data = expand_input(data, 'vector_RGB')
+
             data = data.to(device)
             target = target.to(device)
 
-            if use_quaternion_variant:
-                data = expand_input(data, 'vector_RGB')
             output = network(data).to(device)
             test_loss += loss_criterion(output, target, reduction='sum').item()
             pred = output.data.max(1, keepdim=True)[1]
