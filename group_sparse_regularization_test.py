@@ -320,15 +320,19 @@ def train():
     # TRAIN LOOP #
     for epoch in range(n_epochs):
 
-        test()
+        #test()
 
         for batch_index, (data, target) in enumerate(train_set):
 
             if use_quaternion_variant:
                 data = expand_input(data, 'vector_RGB')
 
+            print(data)
+
             data = data.to(device)
             target = target.to(device)
+
+            print(data)
 
             optimizer.zero_grad()
             output = network(data).to(device)  # Forward pass
@@ -343,7 +347,7 @@ def train():
                 train_losses.append(loss.item())
                 train_counter.append((batch_index * batch_size_train) + (epoch * len(train_set.dataset)))
 
-    test()
+    #test()
 
 
 def test():
