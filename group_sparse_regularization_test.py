@@ -24,7 +24,7 @@ from quaternion_layers import *
 import matplotlib.pyplot as plt
 
 # PARAMETERS #
-CUDA = False
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 use_quaternion_variant = True
 plot_curve = True
 debug = False
@@ -260,10 +260,10 @@ def calculate_sparsity():
 def expand_input(data, repeat_type='vector_zero'):  # [BATCH X CHANNELS X WIDTH X HEIGHT]
 
     if repeat_type == 'repeat':  # Copy the original input also for vector components (i, j, k)
-        return np.repeat(data, 4, axis=1)
+        return np.repeat(data, 4, axis=1, device=device)
 
     elif repeat_type == 'vector_zero':  # Zero-fill for vector components (i, j, k)
-        data = np.repeat(data, 4, axis=1)
+        data = np.repeat(data, 4, axis=1, device=device)
         for row in data:
             row[1].fill_(0)
             row[2].fill_(0)
@@ -295,7 +295,7 @@ def expand_input(data, repeat_type='vector_zero'):  # [BATCH X CHANNELS X WIDTH 
         return data'''
 
         #print(data.shape)
-        new_input = torch.zeros((data.shape[0], 4, data.shape[2], data.shape[3]), dtype=torch.float)
+        new_input = torch.zeros((data.shape[0], 4, data.shape[2], data.shape[3]), dtype=torch.float, device=device)
         new_input[:, 1:, :, :] = data
 
         return new_input
@@ -406,7 +406,9 @@ else:
     else:
         network = CIFARConvNet()
 
+network = network.to(device=device)
 
+print('Device used: ' + device.type)
 print('Variant: ' + network.network_type())
 print('Number of trainable parameters: ' + str(count_trainable_parameters()))
 
