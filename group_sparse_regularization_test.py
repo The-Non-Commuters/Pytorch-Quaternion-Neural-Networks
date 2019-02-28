@@ -260,10 +260,10 @@ def calculate_sparsity():
 def expand_input(data, repeat_type='vector_zero'):  # [BATCH X CHANNELS X WIDTH X HEIGHT]
 
     if repeat_type == 'repeat':  # Copy the original input also for vector components (i, j, k)
-        return np.repeat(data, 4, axis=1, device=device)
+        return np.repeat(data, 4, axis=1)
 
     elif repeat_type == 'vector_zero':  # Zero-fill for vector components (i, j, k)
-        data = np.repeat(data, 4, axis=1, device=device)
+        data = np.repeat(data, 4, axis=1)
         for row in data:
             row[1].fill_(0)
             row[2].fill_(0)
