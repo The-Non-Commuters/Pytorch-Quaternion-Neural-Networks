@@ -32,7 +32,7 @@ dataset = 'CIFAR10'
 log_interval = 10
 
 # HYPER PARAMETERS #
-n_epochs = 2
+n_epochs = 10
 learning_rate = 0.001
 loss_criterion = F.cross_entropy  # before F.nll_loss (Negative log-likelihood loss)
 batch_size_train = 200
@@ -319,7 +319,7 @@ def train():
     # TRAIN LOOP #
     for epoch in range(n_epochs):
 
-        #test()
+        test()
 
         for batch_index, (data, target) in enumerate(train_set):
 
@@ -341,7 +341,7 @@ def train():
                 train_losses.append(loss.item())
                 train_counter.append((batch_index * batch_size_train) + (epoch * len(train_set.dataset)))
 
-    #test()
+    test()
 
 
 def test():
