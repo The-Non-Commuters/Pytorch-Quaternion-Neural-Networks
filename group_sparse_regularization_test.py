@@ -37,7 +37,7 @@ learning_rate = 0.001
 loss_criterion = F.cross_entropy  # before F.nll_loss (Negative log-likelihood loss)
 batch_size_train = 200
 batch_size_test = 1000
-regularization_factor = 0.0005
+regularization_factor = 0.0001
 
 regularizers = {
     'L1': lambda param: torch.sum(torch.abs(param)),
