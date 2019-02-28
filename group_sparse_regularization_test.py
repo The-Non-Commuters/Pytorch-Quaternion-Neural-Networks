@@ -32,7 +32,7 @@ dataset = 'CIFAR10'
 log_interval = 10
 
 # HYPER PARAMETERS #
-n_epochs = 100
+n_epochs = 10
 learning_rate = 0.001
 loss_criterion = F.cross_entropy  # before F.nll_loss (Negative log-likelihood loss)
 batch_size_train = 200
@@ -243,11 +243,11 @@ def calculate_sparsity():
     sparsity_neurons = []
 
     for param in network.parameters():
-        nonzero_weights = 1 - (param.detach().cpu().numpy().round(decimals=2).ravel().nonzero()[0].shape[
+        nonzero_weights = 1 - (param.detach().cpu().numpy().round(decimals=4).ravel().nonzero()[0].shape[
                                    0] / count_trainable_parameters())
         sparsity_weights.append(nonzero_weights)
 
-        nonzero_neurons = param.detach().cpu().numpy().round(decimals=2).sum(axis=0).nonzero()[0].shape[0]
+        nonzero_neurons = param.detach().cpu().numpy().round(decimals=4).sum(axis=0).nonzero()[0].shape[0]
         sparsity_neurons.append(nonzero_neurons)
 
     sparsity_weights = np.mean(sparsity_weights) * 100
