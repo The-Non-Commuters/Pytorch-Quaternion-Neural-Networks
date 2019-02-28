@@ -221,7 +221,7 @@ def regularization(regularization_type=None):
             quaternion_sum = None
 
             for param in network.parameters():
-                print(param.shape)
+                #print(param.shape)
                 # if param.dim() > 1:  # avoid biases if exist (one-dimensional arrays)
                 if quaternion_sum is None:
                     quaternion_sum = param.clone()
