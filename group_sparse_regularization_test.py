@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 
 # PARAMETERS #
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-dataset = 'MNIST'
+dataset = 'CIFAR10'
 use_quaternion_variant = True
 plot_curve = True
 debug = False
@@ -49,7 +49,7 @@ regularizers = {
 }
 
 
-class MNISTQConvNet(nn.Module):  # Quaternion CNN
+class MNISTQConvNet(nn.Module):  # Quaternion CNN for MNIST
 
     def __init__(self):
         super(MNISTQConvNet, self).__init__()
@@ -74,7 +74,7 @@ class MNISTQConvNet(nn.Module):  # Quaternion CNN
         return type(self).__name__
 
 
-class MNISTConvNet(nn.Module):  # Standard CNN
+class MNISTConvNet(nn.Module):  # Standard CNN for MNIST
 
     def __init__(self):
         super(MNISTConvNet, self).__init__()
@@ -97,7 +97,7 @@ class MNISTConvNet(nn.Module):  # Standard CNN
         return type(self).__name__
 
 
-class CIFARQConvNet(nn.Module):  # Quaternion CNN
+class CIFARQConvNet(nn.Module):  # Quaternion CNN for CIFAR-10
 
     def __init__(self):
         super(CIFARQConvNet, self).__init__()
@@ -109,7 +109,6 @@ class CIFARQConvNet(nn.Module):  # Quaternion CNN
         self.conv5 = QuaternionConv(128, 256, kernel_size=5, stride=1, padding=1)
         self.conv2_drop2 = nn.Dropout2d()
         self.fc1 = QuaternionLinear(1024, 40)
-        # self.fc2 = QuaternionLinear(80, 40)
         self.fc2 = nn.Linear(40, 10)
 
     def forward(self, x):
@@ -128,11 +127,11 @@ class CIFARQConvNet(nn.Module):  # Quaternion CNN
         return type(self).__name__
 
 
-class CIFARConvNet(nn.Module):  # Standard CNN
+class CIFARConvNet(nn.Module):  # Standard CNN for CIFAR-10
 
     def __init__(self):
         super(CIFARConvNet, self).__init__()
-        self.conv1 = nn.Conv2d(4, 8, kernel_size=3, stride=1, padding=1)
+        self.conv1 = nn.Conv2d(3, 8, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1)
         self.conv2_drop1 = nn.Dropout2d()
         self.conv3 = nn.Conv2d(16, 48, kernel_size=5, stride=1, padding=1)
@@ -157,7 +156,6 @@ class CIFARConvNet(nn.Module):  # Standard CNN
 
 
 def get_dataset():
-
     if dataset == 'CIFAR10':
         transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(),
                                                     torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
@@ -262,7 +260,7 @@ def train():
         for batch_index, (data, target) in enumerate(train_set):
 
             if use_quaternion_variant:
-                data = expand_input(data, 'vector_zero')
+                data = expand_input(data, 'vector_RGB')
 
             data, target = data.to(device), target.to(device)
 
@@ -289,7 +287,7 @@ def test():
         for data, target in test_set:
 
             if use_quaternion_variant:
-                data = expand_input(data, 'vector_zero')
+                data = expand_input(data, 'vector_RGB')
 
             data, target = data.to(device), target.to(device)
 
@@ -305,25 +303,24 @@ def test():
 
 
 def inference(raw_image):
-    raw_image = np.expand_dims(raw_image, axis=0)
-    image_tensor = torch.from_numpy(raw_image).unsqueeze_(0)
+    image_tensor = raw_image.unsqueeze_(0).to(device)
     if use_quaternion_variant:
-        image_tensor = expand_input(image_tensor).to(device)
+        image_tensor = expand_input(image_tensor)
     network.eval()
     output = network(image_tensor)
     index = output.data.cpu().numpy().argmax()
     return index
 
 
-def show_image(image, text_ground_truth):
-    fig = plt.figure()
-    plt.subplot(2, 3, 1)
-    plt.tight_layout()
-    plt.imshow(image, cmap='gray', interpolation='none')
+def show_image(image, text_ground_truth=''):
     plt.title('Ground Truth: {}'.format(text_ground_truth))
+    plt.tight_layout()
+    plt.subplot(2, 3, 1)
     plt.xticks([])
     plt.yticks([])
-    fig.show()
+    image = np.transpose(image / 2 + 0.5, (1, 2, 0)) if dataset == 'CIFAR10' else image[0]
+    plt.imshow(image, cmap='gray', interpolation='nearest')
+    plt.show()
 
 
 def plot_training_curve():
@@ -375,8 +372,8 @@ print('\nNeurons: {}\nSparsity {:.2f}%'.format(neurons, weights))
 samples = enumerate(test_set)
 batch_idx, (sample_data, sample_targets) = next(samples)
 
-show_image(sample_data[0][0], sample_targets[0])  # Show a random image from the test set
-print('Evaluation of a random sample: ' + str(inference(sample_data[0][0])))
+show_image(sample_data[0], sample_targets[0])  # Show a random image from the test set
+print('Evaluation of a random sample: ' + str(inference(sample_data[0])))
 
 if plot_curve:
     plot_training_curve()
