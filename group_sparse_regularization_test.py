@@ -25,10 +25,10 @@ import matplotlib.pyplot as plt
 
 # PARAMETERS #
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+dataset = 'MNIST'
 use_quaternion_variant = True
 plot_curve = True
 debug = False
-dataset = 'CIFAR10'
 log_interval = 10
 
 # HYPER PARAMETERS #
@@ -38,6 +38,7 @@ loss_criterion = F.cross_entropy  # before F.nll_loss (Negative log-likelihood l
 batch_size_train = 200
 batch_size_test = 1000
 regularization_factor = 0.0001
+regularizer = 'L2'
 
 regularizers = {
     'L1': lambda param: torch.sum(torch.abs(param)),
@@ -63,7 +64,6 @@ class MNISTQConvNet(nn.Module):  # Quaternion CNN
         #  x = F.relu(self.conv1(x))
         x = F.relu(F.max_pool2d(self.conv2(x), 2))
         x = F.relu(F.max_pool2d(self.conv2_drop(self.conv3(x)), 2))
-        print(x.shape)
         x = x.view(-1, 400)
         x = F.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
@@ -120,16 +120,8 @@ class CIFARQConvNet(nn.Module):  # Quaternion CNN
         x = F.relu(F.max_pool2d(self.conv2_drop2(self.conv5(x)), 2))
         x = x.view(-1, 1024)
         x = F.relu(self.fc1(x))
-        #x = x.view(-1, 4, 10)
-        #print(x.shape)
-        #aa = torch.zeros((x.shape[0], x.shape[2]), dtype=torch.float)
-        #x = F.max_pool1d(x, 4)
         x = F.dropout(x, training=self.training)
-        ## x [1000, 40]
-        #x[2] = torch.argmax(x[1])
-        #aa[] = x[::]
         x = self.fc2(x)
-        #print(aa.shape)
         return F.log_softmax(x, dim=1)
 
     def network_type(self):
@@ -140,21 +132,20 @@ class CIFARConvNet(nn.Module):  # Standard CNN
 
     def __init__(self):
         super(CIFARConvNet, self).__init__()
-        self.conv2 = nn.Conv2d(4, 8, kernel_size=3, stride=1, padding=1)
-        self.conv3 = nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1)
+        self.conv1 = nn.Conv2d(4, 8, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(8, 16, kernel_size=3, stride=1, padding=1)
         self.conv2_drop1 = nn.Dropout2d()
-        self.conv4 = nn.Conv2d(16, 48, kernel_size=5, stride=1, padding=1)
-        self.conv5 = nn.Conv2d(48, 92, kernel_size=5, stride=1, padding=1)
-        self.conv2_drop2 = nn.Dropout2d()
+        self.conv3 = nn.Conv2d(16, 48, kernel_size=5, stride=1, padding=1)
+        self.conv4 = nn.Conv2d(48, 92, kernel_size=5, stride=1, padding=1)
+        self.conv4_drop2 = nn.Dropout2d()
         self.fc1 = nn.Linear(368, 40)
         self.fc2 = nn.Linear(40, 10)
 
     def forward(self, x):
-        #  x = F.relu(self.conv1(x))
-        x = F.relu(F.max_pool2d(self.conv2(x), 2))
-        x = F.relu(F.max_pool2d(self.conv2_drop1(self.conv3(x)), 2))
-        x = F.relu(self.conv4(x))
-        x = F.relu(F.max_pool2d(self.conv2_drop2(self.conv5(x)), 2))
+        x = F.relu(F.max_pool2d(self.conv1(x), 2))
+        x = F.relu(F.max_pool2d(self.conv2_drop1(self.conv2(x)), 2))
+        x = F.relu(self.conv3(x))
+        x = F.relu(F.max_pool2d(self.conv4_drop2(self.conv4(x)), 2))
         x = x.view(-1, 368)
         x = F.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
@@ -168,39 +159,20 @@ class CIFARConvNet(nn.Module):  # Standard CNN
 def get_dataset():
 
     if dataset == 'CIFAR10':
-
         transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(),
                                                     torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-
-        train_loader = torch.utils.data.DataLoader(
-            torchvision.datasets.CIFAR10('/files/', train=True, download=True,
-                                         transform=transform),
-            batch_size=batch_size_train, shuffle=True)
-
-        test_loader = torch.utils.data.DataLoader(
-            torchvision.datasets.CIFAR10('/files/', train=False, download=True,
-                                         transform=transform),
-            batch_size=batch_size_test, shuffle=True)
+        data = torchvision.datasets.CIFAR10
 
     elif dataset == 'MNIST':
+        transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(),
+                                                    torchvision.transforms.Normalize((0.1307,), (0.3081,))]) # global mean and standard deviation of MNIST dataset
+        data = torchvision.datasets.MNIST
 
-        train_loader = torch.utils.data.DataLoader(
-            torchvision.datasets.MNIST('/files/', train=True, download=True,
-                                       transform=torchvision.transforms.Compose([
-                                           torchvision.transforms.ToTensor(),
-                                           torchvision.transforms.Normalize((0.1307,), (0.3081,))
-                                           # global mean and standard deviation of MNIST dataset
-                                       ])),
-            batch_size=batch_size_train, shuffle=True)
+    train_loader = torch.utils.data.DataLoader(
+        data('/files/', train=True, download=True, transform=transform), batch_size=batch_size_train, shuffle=True)
 
-        test_loader = torch.utils.data.DataLoader(
-            torchvision.datasets.MNIST('/files/', train=False, download=True,
-                                       transform=torchvision.transforms.Compose([
-                                           torchvision.transforms.ToTensor(),
-                                           torchvision.transforms.Normalize(
-                                               (0.1307,), (0.3081,))
-                                       ])),
-            batch_size=batch_size_test, shuffle=True)
+    test_loader = torch.utils.data.DataLoader(
+        data('/files/', train=False, download=True, transform=transform), batch_size=batch_size_test, shuffle=True)
 
     return train_loader, test_loader
 
@@ -210,7 +182,6 @@ def count_trainable_parameters():
 
 
 def regularization(regularization_type=None):
-
     reg = 0
 
     if regularization_type in regularizers:
@@ -220,7 +191,7 @@ def regularization(regularization_type=None):
             quaternion_sum = None
 
             for param in network.parameters():
-                #print(param.shape)
+                # print(param.shape)
                 # if param.dim() > 1:  # avoid biases if exist (one-dimensional arrays)
                 if quaternion_sum is None:
                     quaternion_sum = param.clone()
@@ -229,16 +200,16 @@ def regularization(regularization_type=None):
                     quaternion_sum = param.clone()
                 else:
                     quaternion_sum += param
-            
+
         else:
-            regularizer = regularizers[regularization_type]
             for param in network.parameters():
-                reg += regularizer(param)
+                reg += regularizers[regularization_type](param)
 
     return reg
 
 
 def calculate_sparsity():
+
     sparsity_weights = []
     sparsity_neurons = []
 
@@ -256,60 +227,27 @@ def calculate_sparsity():
     return sparsity_weights, sparsity_neurons
 
 
-def expand_input(data, repeat_type='vector_zero'):  # [BATCH X CHANNELS X WIDTH X HEIGHT]
+def expand_input(data, repeat_type='vector_RGB'):  # [BATCH X CHANNELS X WIDTH X HEIGHT]
 
     if repeat_type == 'repeat':  # Copy the original input also for vector components (i, j, k)
-        return np.repeat(data, 4, axis=1)
+        new_input = np.repeat(data, 4, axis=1)
 
     elif repeat_type == 'vector_zero':  # Zero-fill for vector components (i, j, k)
-        data = np.repeat(data, 4, axis=1)
-        for row in data:
-            row[1].fill_(0)
-            row[2].fill_(0)
-            row[3].fill_(0)
-        if debug:
-            print('-----------------------')
-            np.set_printoptions(threshold=None)
-            print(data[0])
-        return data
+        new_input = torch.zeros(data.shape[0], 4, data.shape[2], data.shape[3], dtype=torch.float, device=device)
+        new_input[:, :1, :, :] = data
 
     elif repeat_type == 'vector_RGB':  # real part to 0 and (RGB) -> (i, j, k)
-
-        '''if debug:
-            print('***initial image***')
-            print(data[0])
-
-        data.resize_(data.size()[0], 4, 32, 32)  # (i, j, k, r)
-
-        for i in range(data.size()[0]):
-            data[i][3] = torch.zeros((32, 32), dtype=torch.float)
-            data[i] = torch.roll(data[i], 1, 0)  # (r, i, j, k)
-
-        if debug:
-            print('-----------------------')
-            np.set_printoptions(threshold=None)
-            print(str(data.shape))
-            print(data[0])
-
-        return data'''
-
-        #print(data.shape)
         new_input = torch.zeros((data.shape[0], 4, data.shape[2], data.shape[3]), dtype=torch.float, device=device)
         new_input[:, 1:, :, :] = data
 
-        return new_input
+    if debug:
+        print('-----------------------')
+        np.set_printoptions(threshold=None)
+        print(data.shape)
+        print(new_input.shape)
+        print(new_input[0])
 
-        '''for i in range(0, batch_size_train):
-            new_input[1] = data[i][0]  # i
-            new_input[2] = data[i][1]  # j
-            new_input[3] = data[i][2]  # k
-            data[i] = new_input
-        if debug:
-            print('-----------------------')
-            np.set_printoptions(threshold=None)
-            print(str(data.shape))
-            print(data[0])
-        return data'''
+    return new_input
 
 
 def train():
@@ -324,13 +262,13 @@ def train():
         for batch_index, (data, target) in enumerate(train_set):
 
             if use_quaternion_variant:
-                data = expand_input(data, 'vector_RGB')
+                data = expand_input(data, 'vector_zero')
 
             data, target = data.to(device), target.to(device)
 
             optimizer.zero_grad()
             output = network(data)  # Forward pass
-            loss = loss_criterion(output, target) + regularization_factor * regularization('L2')
+            loss = loss_criterion(output, target) + regularization_factor * regularization(regularizer)
             loss.backward()  # Backward pass
             optimizer.step()  # Optimize
 
@@ -351,7 +289,7 @@ def test():
         for data, target in test_set:
 
             if use_quaternion_variant:
-                data = expand_input(data, 'vector_RGB')
+                data = expand_input(data, 'vector_zero')
 
             data, target = data.to(device), target.to(device)
 
@@ -412,12 +350,11 @@ else:
         network = CIFARConvNet()
 
 network = network.to(device)
+optimizer = optim.Adam(network.parameters(), lr=learning_rate)
 
 print('Device used: ' + device.type)
 print('Network variant: ' + network.network_type())
 print('Number of trainable parameters: ' + str(count_trainable_parameters()))
-
-optimizer = optim.Adam(network.parameters(), lr=learning_rate)
 
 print('\nRetrieve ' + dataset + ' dataset...')
 train_set, test_set = get_dataset()
