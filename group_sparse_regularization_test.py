@@ -25,14 +25,14 @@ import matplotlib.pyplot as plt
 
 # PARAMETERS #
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-dataset = 'CIFAR10'
-use_quaternion_variant = True
+dataset = 'MNIST'
+use_quaternion_variant = False
 plot_curve = True
 debug = False
 log_interval = 10
 
 # HYPER PARAMETERS #
-n_epochs = 10
+n_epochs = 1
 learning_rate = 0.001
 loss_criterion = F.cross_entropy  # before F.nll_loss (Negative log-likelihood loss)
 batch_size_train = 200
@@ -313,6 +313,7 @@ def inference(raw_image):
 
 
 def show_image(image, text_ground_truth=''):
+
     plt.title('Ground Truth: {}'.format(text_ground_truth))
     plt.tight_layout()
     plt.subplot(2, 3, 1)
@@ -324,13 +325,13 @@ def show_image(image, text_ground_truth=''):
 
 
 def plot_training_curve():
-    fig = plt.figure()
+
     plt.plot(train_counter, train_losses, color='blue')
     plt.scatter(test_counter, test_losses, color='red')
     plt.legend(['Train Loss', 'Test Loss'], loc='upper right')
     plt.xlabel('number of training examples seen')
     plt.ylabel(loss_criterion.__name__.capitalize().replace('_', ' '))
-    fig.show()
+    plt.show()
 
 
 print('\n*** Group Sparse Regularization Testing ***')
