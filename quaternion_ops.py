@@ -8,7 +8,6 @@
 
 import torch
 import torch.nn.functional as F
-from torch.autograd import Variable
 
 import numpy as np
 from numpy.random import RandomState
@@ -331,8 +330,8 @@ class QuaternionLinearFunction(torch.autograd.Function):
         input_i = torch.cat([i_weight, r_weight, -k_weight, j_weight], dim=0)
         input_j = torch.cat([j_weight, k_weight, r_weight, -i_weight], dim=0)
         input_k = torch.cat([k_weight, -j_weight, i_weight, r_weight], dim=0)
-        cat_kernels_4_quaternion_T = Variable(torch.cat([input_r, input_i, input_j, input_k], dim=1).permute(1, 0),
-                                              requires_grad=False)
+        cat_kernels_4_quaternion_T = torch.cat([input_r, input_i, input_j, input_k], dim=1).permute(1, 0)
+        cat_kernels_4_quaternion_T.requires_grad_(False)
 
         r = get_r(input)
         i = get_i(input)
@@ -342,7 +341,8 @@ class QuaternionLinearFunction(torch.autograd.Function):
         input_i = torch.cat([i, r, -k, j], dim=0)
         input_j = torch.cat([j, k, r, -i], dim=0)
         input_k = torch.cat([k, -j, i, r], dim=0)
-        input_mat = Variable(torch.cat([input_r, input_i, input_j, input_k], dim=1), requires_grad=False)
+        input_mat = torch.cat([input_r, input_i, input_j, input_k], dim=1)
+        input_mat.requires_grad_(False)
 
         r = get_r(grad_output)
         i = get_i(grad_output)
@@ -559,7 +559,7 @@ def quaternion_init(in_features, out_features, rng, kernel_size=None, criterion=
 def create_dropout_mask(dropout_p, size, rng, as_type, operation='linear'):
     if operation == 'linear':
         mask = rng.binomial(n=1, p=1 - dropout_p, size=size)
-        return Variable(torch.from_numpy(mask).type(as_type))
+        return torch.from_numpy(mask).type(as_type)
     else:
         raise Exception("create_dropout_mask accepts only 'linear'. Found operation = " + str(operation))
 
