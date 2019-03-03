@@ -30,3 +30,4 @@ RES/*
 __pycache__/*
 *.pyc
 
+.idea/inspectionProfiles/Project_Default.xml
