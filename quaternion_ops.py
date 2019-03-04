@@ -95,11 +95,11 @@ def quaternion_conv(input, r_weight, i_weight, j_weight, k_weight, bias, stride,
     Applies a quaternion convolution to the incoming data:
     """
 
-    cat_kernels_4_r = torch.cat((r_weight, -i_weight, -j_weight, -k_weight), dim=1)
-    cat_kernels_4_i = torch.cat((i_weight, r_weight, -k_weight, j_weight), dim=1)
-    cat_kernels_4_j = torch.cat((j_weight, k_weight, r_weight, -i_weight), dim=1)
-    cat_kernels_4_k = torch.cat((k_weight, -j_weight, i_weight, r_weight), dim=1)
-    cat_kernels_4_quaternion = torch.cat((cat_kernels_4_r, cat_kernels_4_i, cat_kernels_4_j, cat_kernels_4_k), dim=0)
+    cat_kernels_4_r = torch.cat([r_weight, -i_weight, -j_weight, -k_weight], dim=1)
+    cat_kernels_4_i = torch.cat([i_weight, r_weight, -k_weight, j_weight], dim=1)
+    cat_kernels_4_j = torch.cat([j_weight, k_weight, r_weight, -i_weight], dim=1)
+    cat_kernels_4_k = torch.cat([k_weight, -j_weight, i_weight, r_weight], dim=1)
+    cat_kernels_4_quaternion = torch.cat([cat_kernels_4_r, cat_kernels_4_i, cat_kernels_4_j, cat_kernels_4_k], dim=0)
 
     if input.dim() == 3:
         convfunc = F.conv1d
@@ -121,11 +121,11 @@ def quaternion_transpose_conv(input, r_weight, i_weight, j_weight, k_weight, bia
 
     """
 
-    cat_kernels_4_r = torch.cat((r_weight, -i_weight, -j_weight, -k_weight), dim=1)
-    cat_kernels_4_i = torch.cat((i_weight, r_weight, -k_weight, j_weight), dim=1)
-    cat_kernels_4_j = torch.cat((j_weight, k_weight, r_weight, -i_weight), dim=1)
-    cat_kernels_4_k = torch.cat((k_weight, -j_weight, i_weight, r_weight), dim=1)
-    cat_kernels_4_quaternion = torch.cat((cat_kernels_4_r, cat_kernels_4_i, cat_kernels_4_j, cat_kernels_4_k), dim=0)
+    cat_kernels_4_r = torch.cat([r_weight, -i_weight, -j_weight, -k_weight], dim=1)
+    cat_kernels_4_i = torch.cat([i_weight, r_weight, -k_weight, j_weight], dim=1)
+    cat_kernels_4_j = torch.cat([j_weight, k_weight, r_weight, -i_weight], dim=1)
+    cat_kernels_4_k = torch.cat([k_weight, -j_weight, i_weight, r_weight], dim=1)
+    cat_kernels_4_quaternion = torch.cat([cat_kernels_4_r, cat_kernels_4_i, cat_kernels_4_j, cat_kernels_4_k], dim=0)
 
     if input.dim() == 3:
         convfunc = F.conv_transpose1d
@@ -177,17 +177,17 @@ def quaternion_conv_rotation(input, r_weight, i_weight, j_weight, k_weight, bias
 
     if quaternion_format:
         zero_kernel = torch.zeros(r_weight.shape)
-        rot_kernel_1 = torch.cat((zero_kernel, 1.0 - (square_j + square_k), ij - rk, ik + rj), dim=0)
-        rot_kernel_2 = torch.cat((zero_kernel, ij + rk, 1.0 - (square_i + square_k), jk - ri), dim=0)
-        rot_kernel_3 = torch.cat((zero_kernel, ik - rj, jk + ri, 1.0 - (square_i + square_j)), dim=0)
+        rot_kernel_1 = torch.cat([zero_kernel, 1.0 - (square_j + square_k), ij - rk, ik + rj], dim=0)
+        rot_kernel_2 = torch.cat([zero_kernel, ij + rk, 1.0 - (square_i + square_k), jk - ri], dim=0)
+        rot_kernel_3 = torch.cat([zero_kernel, ik - rj, jk + ri, 1.0 - (square_i + square_j)], dim=0)
 
         zero_kernel2 = torch.zeros(rot_kernel_1.shape)
-        global_rot_kernel = torch.cat((zero_kernel2, rot_kernel_1, rot_kernel_2, rot_kernel_3), dim=1)
+        global_rot_kernel = torch.cat([zero_kernel2, rot_kernel_1, rot_kernel_2, rot_kernel_3], dim=1)
     else:
-        rot_kernel_1 = torch.cat((1.0 - (square_j + square_k), ij - rk, ik + rj), dim=0)
-        rot_kernel_2 = torch.cat((ij + rk, 1.0 - (square_i + square_k), jk - ri), dim=0)
-        rot_kernel_3 = torch.cat((ik - rj, jk + ri, 1.0 - (square_i + square_j)), dim=0)
-        global_rot_kernel = torch.cat((rot_kernel_1, rot_kernel_2, rot_kernel_3), dim=1)
+        rot_kernel_1 = torch.cat([1.0 - (square_j + square_k), ij - rk, ik + rj], dim=0)
+        rot_kernel_2 = torch.cat([ij + rk, 1.0 - (square_i + square_k), jk - ri], dim=0)
+        rot_kernel_3 = torch.cat([ik - rj, jk + ri, 1.0 - (square_i + square_j)], dim=0)
+        global_rot_kernel = torch.cat([rot_kernel_1, rot_kernel_2, rot_kernel_3], dim=1)
 
     if input.dim() == 3:
         convfunc = F.conv1d
@@ -240,17 +240,17 @@ def quaternion_transpose_conv_rotation(input, r_weight, i_weight, j_weight, k_we
 
     if quaternion_format:
         zero_kernel = torch.zeros(r_weight.shape)
-        rot_kernel_1 = torch.cat((zero_kernel, 1.0 - (square_j + square_k), ij - rk, ik + rj), dim=0)
-        rot_kernel_2 = torch.cat((zero_kernel, ij + rk, 1.0 - (square_i + square_k), jk - ri), dim=0)
-        rot_kernel_3 = torch.cat((zero_kernel, ik - rj, jk + ri, 1.0 - (square_i + square_j)), dim=0)
+        rot_kernel_1 = torch.cat([zero_kernel, 1.0 - (square_j + square_k), ij - rk, ik + rj], dim=0)
+        rot_kernel_2 = torch.cat([zero_kernel, ij + rk, 1.0 - (square_i + square_k), jk - ri], dim=0)
+        rot_kernel_3 = torch.cat([zero_kernel, ik - rj, jk + ri, 1.0 - (square_i + square_j)], dim=0)
 
         zero_kernel2 = torch.zeros(rot_kernel_1.shape)
-        global_rot_kernel = torch.cat((zero_kernel2, rot_kernel_1, rot_kernel_2, rot_kernel_3), dim=1)
+        global_rot_kernel = torch.cat([zero_kernel2, rot_kernel_1, rot_kernel_2, rot_kernel_3], dim=1)
     else:
-        rot_kernel_1 = torch.cat((1.0 - (square_j + square_k), ij - rk, ik + rj), dim=0)
-        rot_kernel_2 = torch.cat((ij + rk, 1.0 - (square_i + square_k), jk - ri), dim=0)
-        rot_kernel_3 = torch.cat((ik - rj, jk + ri, 1.0 - (square_i + square_j)), dim=0)
-        global_rot_kernel = torch.cat((rot_kernel_1, rot_kernel_2, rot_kernel_3), dim=1)
+        rot_kernel_1 = torch.cat([1.0 - (square_j + square_k), ij - rk, ik + rj], dim=0)
+        rot_kernel_2 = torch.cat([ij + rk, 1.0 - (square_i + square_k), jk - ri], dim=0)
+        rot_kernel_3 = torch.cat([ik - rj, jk + ri, 1.0 - (square_i + square_j)], dim=0)
+        global_rot_kernel = torch.cat([rot_kernel_1, rot_kernel_2, rot_kernel_3], dim=1)
 
     if input.dim() == 3:
         convfunc = F.conv_transpose1d
@@ -276,11 +276,11 @@ def quaternion_linear(input, r_weight, i_weight, j_weight, k_weight, bias=True):
 
     """
 
-    cat_kernels_4_r = torch.cat((r_weight, -i_weight, -j_weight, -k_weight), dim=0)
-    cat_kernels_4_i = torch.cat((i_weight, r_weight, -k_weight, j_weight), dim=0)
-    cat_kernels_4_j = torch.cat((j_weight, k_weight, r_weight, -i_weight), dim=0)
-    cat_kernels_4_k = torch.cat((k_weight, -j_weight, i_weight, r_weight), dim=0)
-    cat_kernels_4_quaternion = torch.cat((cat_kernels_4_r, cat_kernels_4_i, cat_kernels_4_j, cat_kernels_4_k), dim=1)
+    cat_kernels_4_r = torch.cat([r_weight, -i_weight, -j_weight, -k_weight], dim=0)
+    cat_kernels_4_i = torch.cat([i_weight, r_weight, -k_weight, j_weight], dim=0)
+    cat_kernels_4_j = torch.cat([j_weight, k_weight, r_weight, -i_weight], dim=0)
+    cat_kernels_4_k = torch.cat([k_weight, -j_weight, i_weight, r_weight], dim=0)
+    cat_kernels_4_quaternion = torch.cat([cat_kernels_4_r, cat_kernels_4_i, cat_kernels_4_j, cat_kernels_4_k], dim=1)
 
     if input.dim() == 2:
 
@@ -332,17 +332,17 @@ def quaternion_linear_rotation(input, r_weight, i_weight, j_weight, k_weight, bi
 
     if quaternion_format:
         zero_kernel = torch.zeros(r_weight.shape)
-        rot_kernel_1 = torch.cat((zero_kernel, 1.0 - (square_j + square_k), ij - rk, ik + rj), dim=0)
-        rot_kernel_2 = torch.cat((zero_kernel, ij + rk, 1.0 - (square_i + square_k), jk - ri), dim=0)
-        rot_kernel_3 = torch.cat((zero_kernel, ik - rj, jk + ri, 1.0 - (square_i + square_j)), dim=0)
+        rot_kernel_1 = torch.cat([zero_kernel, 1.0 - (square_j + square_k), ij - rk, ik + rj], dim=0)
+        rot_kernel_2 = torch.cat([zero_kernel, ij + rk, 1.0 - (square_i + square_k), jk - ri], dim=0)
+        rot_kernel_3 = torch.cat([zero_kernel, ik - rj, jk + ri, 1.0 - (square_i + square_j)], dim=0)
 
         zero_kernel2 = torch.zeros(rot_kernel_1.shape)
-        global_rot_kernel = torch.cat((zero_kernel2, rot_kernel_1, rot_kernel_2, rot_kernel_3), dim=1)
+        global_rot_kernel = torch.cat([zero_kernel2, rot_kernel_1, rot_kernel_2, rot_kernel_3], dim=1)
     else:
-        rot_kernel_1 = torch.cat((1.0 - (square_j + square_k), ij - rk, ik + rj), dim=0)
-        rot_kernel_2 = torch.cat((ij + rk, 1.0 - (square_i + square_k), jk - ri), dim=0)
-        rot_kernel_3 = torch.cat((ik - rj, jk + ri, 1.0 - (square_i + square_j)), dim=0)
-        global_rot_kernel = torch.cat((rot_kernel_1, rot_kernel_2, rot_kernel_3), dim=1)
+        rot_kernel_1 = torch.cat([1.0 - (square_j + square_k), ij - rk, ik + rj], dim=0)
+        rot_kernel_2 = torch.cat([ij + rk, 1.0 - (square_i + square_k), jk - ri], dim=0)
+        rot_kernel_3 = torch.cat([ik - rj, jk + ri, 1.0 - (square_i + square_j)], dim=0)
+        global_rot_kernel = torch.cat([rot_kernel_1, rot_kernel_2, rot_kernel_3], dim=1)
 
     if input.dim() == 2:
         if bias is not None:
@@ -364,11 +364,11 @@ class QuaternionLinearFunction(torch.autograd.Function):
     def forward(ctx, input, r_weight, i_weight, j_weight, k_weight, bias=None):
         ctx.save_for_backward(input, r_weight, i_weight, j_weight, k_weight, bias)
         check_input(input)
-        cat_kernels_4_r = torch.cat((r_weight, -i_weight, -j_weight, -k_weight), dim=0)
-        cat_kernels_4_i = torch.cat((i_weight, r_weight, -k_weight, j_weight), dim=0)
-        cat_kernels_4_j = torch.cat((j_weight, k_weight, r_weight, -i_weight), dim=0)
-        cat_kernels_4_k = torch.cat((k_weight, -j_weight, i_weight, r_weight), dim=0)
-        cat_kernels_4_quaternion = torch.cat((cat_kernels_4_r, cat_kernels_4_i, cat_kernels_4_j, cat_kernels_4_k),
+        cat_kernels_4_r = torch.cat([r_weight, -i_weight, -j_weight, -k_weight], dim=0)
+        cat_kernels_4_i = torch.cat([i_weight, r_weight, -k_weight, j_weight], dim=0)
+        cat_kernels_4_j = torch.cat([j_weight, k_weight, r_weight, -i_weight], dim=0)
+        cat_kernels_4_k = torch.cat([k_weight, -j_weight, i_weight, r_weight], dim=0)
+        cat_kernels_4_quaternion = torch.cat([cat_kernels_4_r, cat_kernels_4_i, cat_kernels_4_j, cat_kernels_4_k],
                                              dim=1)
         if input.dim() == 2:
             if bias is not None:
@@ -389,33 +389,33 @@ class QuaternionLinearFunction(torch.autograd.Function):
         input, r_weight, i_weight, j_weight, k_weight, bias = ctx.saved_tensors
         grad_input = grad_weight_r = grad_weight_i = grad_weight_j = grad_weight_k = grad_bias = None
 
-        input_r = torch.cat((r_weight, -i_weight, -j_weight, -k_weight), dim=0)
-        input_i = torch.cat((i_weight, r_weight, -k_weight, j_weight), dim=0)
-        input_j = torch.cat((j_weight, k_weight, r_weight, -i_weight), dim=0)
-        input_k = torch.cat((k_weight, -j_weight, i_weight, r_weight), dim=0)
-        cat_kernels_4_quaternion_T = torch.cat((input_r, input_i, input_j, input_k), dim=1).permute(1, 0)
+        input_r = torch.cat([r_weight, -i_weight, -j_weight, -k_weight], dim=0)
+        input_i = torch.cat([i_weight, r_weight, -k_weight, j_weight], dim=0)
+        input_j = torch.cat([j_weight, k_weight, r_weight, -i_weight], dim=0)
+        input_k = torch.cat([k_weight, -j_weight, i_weight, r_weight], dim=0)
+        cat_kernels_4_quaternion_T = torch.cat([input_r, input_i, input_j, input_k], dim=1).permute(1, 0)
         cat_kernels_4_quaternion_T.requires_grad_(False)
 
         r = get_r(input)
         i = get_i(input)
         j = get_j(input)
         k = get_k(input)
-        input_r = torch.cat((r, -i, -j, -k), dim=0)
-        input_i = torch.cat((i, r, -k, j), dim=0)
-        input_j = torch.cat((j, k, r, -i), dim=0)
-        input_k = torch.cat((k, -j, i, r), dim=0)
-        input_mat = torch.cat((input_r, input_i, input_j, input_k), dim=1)
+        input_r = torch.cat([r, -i, -j, -k], dim=0)
+        input_i = torch.cat([i, r, -k, j], dim=0)
+        input_j = torch.cat([j, k, r, -i], dim=0)
+        input_k = torch.cat([k, -j, i, r], dim=0)
+        input_mat = torch.cat([input_r, input_i, input_j, input_k], dim=1)
         input_mat.requires_grad_(False)
 
         r = get_r(grad_output)
         i = get_i(grad_output)
         j = get_j(grad_output)
         k = get_k(grad_output)
-        input_r = torch.cat((r, i, j, k), dim=1)
-        input_i = torch.cat((-i, r, k, -j), dim=1)
-        input_j = torch.cat((-j, -k, r, i), dim=1)
-        input_k = torch.cat((-k, j, -i, r), dim=1)
-        grad_mat = torch.cat((input_r, input_i, input_j, input_k), dim=0)
+        input_r = torch.cat([r, i, j, k], dim=1)
+        input_i = torch.cat([-i, r, k, -j], dim=1)
+        input_j = torch.cat([-j, -k, r, i], dim=1)
+        input_k = torch.cat([-k, j, -i, r], dim=1)
+        grad_mat = torch.cat([input_r, input_i, input_j, input_k], dim=0)
 
         if ctx.needs_input_grad[0]:
             grad_input = grad_output.mm(cat_kernels_4_quaternion_T)
@@ -455,21 +455,21 @@ def hamilton_product(q0, q1):
     r = get_r(r_base) - get_i(r_base) - get_j(r_base) - get_k(r_base)
 
     # rx', xr', yz', and zy'
-    i_base = torch.mul(q0, torch.cat((q1_i, q1_r, q1_k, q1_j), dim=1))
+    i_base = torch.mul(q0, torch.cat([q1_i, q1_r, q1_k, q1_j], dim=1))
     # (rx' + xr' + yz' - zy')
     i = get_r(i_base) + get_i(i_base) + get_j(i_base) - get_k(i_base)
 
     # ry', xz', yr', and zx'
-    j_base = torch.mul(q0, torch.cat((q1_j, q1_k, q1_r, q1_i), dim=1))
+    j_base = torch.mul(q0, torch.cat([q1_j, q1_k, q1_r, q1_i], dim=1))
     # (rx' + xr' + yz' - zy')
     j = get_r(j_base) - get_i(j_base) + get_j(j_base) + get_k(j_base)
 
     # rz', xy', yx', and zr'
-    k_base = torch.mul(q0, torch.cat((q1_k, q1_j, q1_i, q1_r), dim=1))
+    k_base = torch.mul(q0, torch.cat([q1_k, q1_j, q1_i, q1_r], dim=1))
     # (rx' + xr' + yz' - zy')
     k = get_r(k_base) + get_i(k_base) - get_j(k_base) + get_k(k_base)
 
-    return torch.cat((r, i, j, k), dim=1)
+    return torch.cat([r, i, j, k], dim=1)
 
 
 # PARAMETERS INITIALIZATION #
