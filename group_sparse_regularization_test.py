@@ -56,21 +56,23 @@ class MNISTQConvNet(nn.Module):  # Quaternion CNN for MNIST
 
     def __init__(self):
         super(MNISTQConvNet, self).__init__()
-        #  self.conv1 = nn.Conv2d(1, 4, kernel_size=5)  # input
+        # self.conv1 = nn.Conv2d(1, 4, kernel_size=5)  # input
         self.conv2 = QuaternionConv(4, 8, kernel_size=5, stride=1, padding=1)
         self.conv3 = QuaternionConv(8, 16, kernel_size=5, stride=1, padding=1)
         self.conv3_drop1 = nn.Dropout2d()
-        self.fc1 = QuaternionLinear(400, 80)
-        self.fc2 = QuaternionLinear(80, 40)
+        self.fc1 = QuaternionLinear(400, 40)
+        # self.fc2 = nn.Linear(40, 10)
 
     def forward(self, x):
-        #  x = F.relu(self.conv1(x))
+        # x = F.relu(self.conv1(x))
         x = F.relu(F.max_pool2d(self.conv2(x), 2))
         x = F.relu(F.max_pool2d(self.conv3_drop1(self.conv3(x)), 2))
         x = x.view(-1, 400)
         x = F.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
-        x = self.fc2(x)
+        x = torch.reshape(x, (-1, 10, 4))
+        x = torch.sum(torch.abs(x), dim=2)
+        # x = self.fc2(x)
         return F.log_softmax(x, dim=1)
 
     def network_type(self):
@@ -104,7 +106,7 @@ class CIFARQConvNet(nn.Module):  # Quaternion CNN for CIFAR-10
 
     def __init__(self):
         super(CIFARQConvNet, self).__init__()
-        #  self.conv1 = nn.Conv2d(1, 4, kernel_size=5)  # input
+        # self.conv1 = nn.Conv2d(1, 4, kernel_size=5)  # input
         self.conv2 = QuaternionConv(4, 32, kernel_size=3, stride=1, padding=1)
         self.conv3 = QuaternionConv(32, 64, kernel_size=3, stride=1, padding=1)
         self.conv2_drop1 = nn.Dropout2d()
@@ -112,10 +114,10 @@ class CIFARQConvNet(nn.Module):  # Quaternion CNN for CIFAR-10
         self.conv5 = QuaternionConv(128, 256, kernel_size=5, stride=1, padding=1)
         self.conv5_drop2 = nn.Dropout2d()
         self.fc1 = QuaternionLinear(1024, 40)
-        self.fc2 = nn.Linear(40, 10)
+        # self.fc2 = nn.Linear(40, 10)
 
     def forward(self, x):
-        #  x = F.relu(self.conv1(x))
+        # x = F.relu(self.conv1(x))
         x = F.relu(F.max_pool2d(self.conv2(x), 2))
         x = F.relu(F.max_pool2d(self.conv2_drop1(self.conv3(x)), 2))
         x = F.relu(self.conv4(x))
@@ -123,14 +125,9 @@ class CIFARQConvNet(nn.Module):  # Quaternion CNN for CIFAR-10
         x = x.view(-1, 1024)
         x = F.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
-        '''x = torch.reshape(x, (-1, 10, 4))
-        for row in x:
-            row = row[:, torch.max(row[:, :])]
-            # for aa in row:
-            # row = torch.max(aa)
-        x = x[:, :, 0]
-        print(x.shape)'''
-        x = self.fc2(x)
+        x = torch.reshape(x, (-1, 10, 4))
+        x = torch.sum(torch.abs(x), dim=2)
+        # x = self.fc2(x)
         return F.log_softmax(x, dim=1)
 
     def network_type(self):
@@ -166,6 +163,7 @@ class CIFARConvNet(nn.Module):  # Standard CNN for CIFAR-10
 
 
 def get_dataset():
+
     if dataset == 'CIFAR10':
         transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(),
                                                     torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
