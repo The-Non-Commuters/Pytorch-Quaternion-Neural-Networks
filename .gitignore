@@ -31,3 +31,4 @@ __pycache__/*
 *.pyc
 
 .idea/inspectionProfiles/Project_Default.xml
+*.xml
