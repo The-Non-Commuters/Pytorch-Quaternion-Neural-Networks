@@ -23,10 +23,12 @@ from quaternion_layers import *
 
 import matplotlib.pyplot as plt
 
+import time
+
 # PARAMETERS #
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-dataset = 'MNIST'
-use_quaternion_variant = False
+dataset = 'CIFAR10'
+use_quaternion_variant = True
 plot_curve = True
 debug = False
 log_interval = 10
@@ -43,8 +45,7 @@ regularizer = 'L2'
 regularizers = {
     'L1': lambda param: torch.sum(torch.abs(param)),
     'L2': lambda param: torch.sum(param ** 2),
-    # al massimo è torch.abs(param.shape[1]) e non torch.abs(param[1])
-    'Group L1': lambda param: torch.sum(torch.sqrt(torch.abs(param[1])) * torch.sqrt(torch.sum(param[1] ** 2))),
+    'Group L1': lambda param: torch.sum(np.sqrt(param.shape[0]) * torch.sqrt(torch.sum(param[0] ** 2))),
     'Sparse GL1': lambda param: regularizers['Group L1'](param) + regularizers['L1'](param)
 }
 
@@ -56,14 +57,14 @@ class MNISTQConvNet(nn.Module):  # Quaternion CNN for MNIST
         #  self.conv1 = nn.Conv2d(1, 4, kernel_size=5)  # input
         self.conv2 = QuaternionConv(4, 8, kernel_size=5, stride=1, padding=1)
         self.conv3 = QuaternionConv(8, 16, kernel_size=5, stride=1, padding=1)
-        self.conv2_drop = nn.Dropout2d()
+        self.conv3_drop1 = nn.Dropout2d()
         self.fc1 = QuaternionLinear(400, 80)
         self.fc2 = QuaternionLinear(80, 40)
 
     def forward(self, x):
         #  x = F.relu(self.conv1(x))
         x = F.relu(F.max_pool2d(self.conv2(x), 2))
-        x = F.relu(F.max_pool2d(self.conv2_drop(self.conv3(x)), 2))
+        x = F.relu(F.max_pool2d(self.conv3_drop1(self.conv3(x)), 2))
         x = x.view(-1, 400)
         x = F.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
@@ -80,13 +81,13 @@ class MNISTConvNet(nn.Module):  # Standard CNN for MNIST
         super(MNISTConvNet, self).__init__()
         self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
         self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-        self.conv2_drop = nn.Dropout2d()
+        self.conv2_drop1 = nn.Dropout2d()
         self.fc1 = nn.Linear(320, 60)
         self.fc2 = nn.Linear(60, 10)
 
     def forward(self, x):
         x = F.relu(F.max_pool2d(self.conv1(x), 2))
-        x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
+        x = F.relu(F.max_pool2d(self.conv2_drop1(self.conv2(x)), 2))
         x = x.view(-1, 320)
         x = F.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
@@ -107,7 +108,7 @@ class CIFARQConvNet(nn.Module):  # Quaternion CNN for CIFAR-10
         self.conv2_drop1 = nn.Dropout2d()
         self.conv4 = QuaternionConv(64, 128, kernel_size=5, stride=1, padding=1)
         self.conv5 = QuaternionConv(128, 256, kernel_size=5, stride=1, padding=1)
-        self.conv2_drop2 = nn.Dropout2d()
+        self.conv5_drop2 = nn.Dropout2d()
         self.fc1 = QuaternionLinear(1024, 40)
         self.fc2 = nn.Linear(40, 10)
 
@@ -116,10 +117,17 @@ class CIFARQConvNet(nn.Module):  # Quaternion CNN for CIFAR-10
         x = F.relu(F.max_pool2d(self.conv2(x), 2))
         x = F.relu(F.max_pool2d(self.conv2_drop1(self.conv3(x)), 2))
         x = F.relu(self.conv4(x))
-        x = F.relu(F.max_pool2d(self.conv2_drop2(self.conv5(x)), 2))
+        x = F.relu(F.max_pool2d(self.conv5_drop2(self.conv5(x)), 2))
         x = x.view(-1, 1024)
         x = F.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
+        '''x = torch.reshape(x, (-1, 10, 4))
+        for row in x:
+            row = row[:, torch.max(row[:, :])]
+            # for aa in row:
+            # row = torch.max(aa)
+        x = x[:, :, 0]
+        print(x.shape)'''
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
 
@@ -163,7 +171,8 @@ def get_dataset():
 
     elif dataset == 'MNIST':
         transform = torchvision.transforms.Compose([torchvision.transforms.ToTensor(),
-                                                    torchvision.transforms.Normalize((0.1307,), (0.3081,))]) # global mean and standard deviation of MNIST dataset
+                                                    torchvision.transforms.Normalize((0.1307,), (
+                                                        0.3081,))])  # global mean and standard deviation for MNIST
         data = torchvision.datasets.MNIST
 
     train_loader = torch.utils.data.DataLoader(
@@ -180,40 +189,41 @@ def count_trainable_parameters():
 
 
 def regularization(regularization_type=None):
+
     reg = 0
 
     if regularization_type in regularizers:
 
-        if regularization_type == 'Group L1':
+        quaternion_sum = None
 
-            quaternion_sum = None
+        for param in network.parameters():
 
-            for param in network.parameters():
-                # print(param.shape)
+            if regularization_type == 'Group L1' and use_quaternion_variant is True:
+
+                param = torch.abs(param)
+
+                #  print(param.shape)
                 # if param.dim() > 1:  # avoid biases if exist (one-dimensional arrays)
                 if quaternion_sum is None:
                     quaternion_sum = param.clone()
                 elif quaternion_sum.shape != param.shape:
-                    reg += torch.sum(np.sqrt(quaternion_sum.dim()) * torch.sqrt(torch.sum(quaternion_sum ** 2)))
+                    reg += torch.sum(np.sqrt(quaternion_sum.shape[0]) * torch.sqrt(torch.sum(quaternion_sum[0] ** 2)))
                     quaternion_sum = param.clone()
                 else:
                     quaternion_sum += param
-
-        else:
-            for param in network.parameters():
+            else:
                 reg += regularizers[regularization_type](param)
 
     return reg
 
 
 def calculate_sparsity():
-
     sparsity_weights = []
     sparsity_neurons = []
 
     for param in network.parameters():
-        nonzero_weights = 1 - (param.detach().cpu().numpy().round(decimals=4).ravel().nonzero()[0].shape[
-                                   0] / count_trainable_parameters())
+        nonzero_weights = 1 - (param.detach().cpu().numpy().round(decimals=4).ravel().nonzero()[0].shape[0] /
+                               count_trainable_parameters())
         sparsity_weights.append(nonzero_weights)
 
         nonzero_neurons = param.detach().cpu().numpy().round(decimals=4).sum(axis=0).nonzero()[0].shape[0]
@@ -249,7 +259,6 @@ def expand_input(data, repeat_type='vector_RGB'):  # [BATCH X CHANNELS X WIDTH X
 
 
 def train():
-
     network.train()
 
     # TRAIN LOOP #
@@ -308,12 +317,11 @@ def inference(raw_image):
         image_tensor = expand_input(image_tensor)
     network.eval()
     output = network(image_tensor)
-    index = output.data.cpu().numpy().argmax()
+    index = torch.argmax(output).item()
     return index
 
 
 def show_image(image, text_ground_truth=''):
-
     plt.title('Ground Truth: {}'.format(text_ground_truth))
     plt.tight_layout()
     plt.subplot(2, 3, 1)
@@ -325,7 +333,6 @@ def show_image(image, text_ground_truth=''):
 
 
 def plot_training_curve():
-
     plt.plot(train_counter, train_losses, color='blue')
     plt.scatter(test_counter, test_losses, color='red')
     plt.legend(['Train Loss', 'Test Loss'], loc='upper right')
@@ -334,7 +341,7 @@ def plot_training_curve():
     plt.show()
 
 
-print('\n*** Group Sparse Regularization Testing ***')
+print('\n*** Group Sparse Regularization Testing ***\n')
 
 if use_quaternion_variant:
     if dataset == 'MNIST':
@@ -365,7 +372,9 @@ test_losses = []
 print('\nStart training from ' + dataset + ' training set to generate the model...')
 print('Epochs: ' + str(n_epochs) + '\nLearning rate: ' + str(learning_rate) + '\n')
 
+start_time = time.time()
 train()
+print('Elapsed time: {:.2f} seconds\n'.format(time.time() - start_time))
 
 weights, neurons = calculate_sparsity()
 print('\nNeurons: {}\nSparsity {:.2f}%'.format(neurons, weights))
