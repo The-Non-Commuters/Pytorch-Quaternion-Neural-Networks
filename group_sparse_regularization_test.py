@@ -49,6 +49,8 @@ regularizers = {
     'Sparse GL1': lambda param: regularizers['Group L1'](param) + regularizers['L1'](param)
 }
 
+CIFAR10_num_to_classes = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
+
 
 class MNISTQConvNet(nn.Module):  # Quaternion CNN for MNIST
 
@@ -259,12 +261,13 @@ def expand_input(data, repeat_type='vector_RGB'):  # [BATCH X CHANNELS X WIDTH X
 
 
 def train():
+
     network.train()
 
     # TRAIN LOOP #
     for epoch in range(n_epochs):
 
-        test()
+        test(epoch)
 
         for batch_index, (data, target) in enumerate(train_set):
 
@@ -286,10 +289,10 @@ def train():
                 train_losses.append(loss.item())
                 train_counter.append((batch_index * batch_size_train) + (epoch * len(train_set.dataset)))
 
-    test()
+    test(n_epochs)
 
 
-def test():
+def test(epoch):
     test_loss = 0
     correct = 0
     with torch.no_grad():
@@ -306,6 +309,7 @@ def test():
             correct += pred.eq(target.data.view_as(pred)).sum()
     test_loss /= len(test_set.dataset)
     test_losses.append(test_loss)
+    test_counter.append(epoch * len(train_set.dataset))
     print('\nTest set: Avg. loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
         test_loss, correct, len(test_set.dataset),
         100. * correct / len(test_set.dataset)))
@@ -318,17 +322,22 @@ def inference(raw_image):
     network.eval()
     output = network(image_tensor)
     index = torch.argmax(output).item()
+    index = CIFAR10_num_to_classes[index] if dataset == 'CIFAR10' else index
     return index
 
 
-def show_image(image, text_ground_truth=''):
-    plt.title('Ground Truth: {}'.format(text_ground_truth))
+def show_image(image, text_ground_truth):
     plt.tight_layout()
     plt.subplot(2, 3, 1)
     plt.xticks([])
     plt.yticks([])
+
     image = np.transpose(image / 2 + 0.5, (1, 2, 0)) if dataset == 'CIFAR10' else image[0]
     plt.imshow(image, cmap='gray', interpolation='nearest')
+
+    text_ground_truth = CIFAR10_num_to_classes[text_ground_truth] if dataset == 'CIFAR10' else text_ground_truth
+    plt.title('Ground Truth: {}'.format(text_ground_truth))
+
     plt.show()
 
 
@@ -359,31 +368,28 @@ optimizer = optim.Adam(network.parameters(), lr=learning_rate)
 
 print('Device used: ' + device.type)
 print('Network variant: ' + network.network_type())
-print('Number of trainable parameters: ' + str(count_trainable_parameters()))
+print('Number of trainable parameters: {}\n'.format(count_trainable_parameters()))
 
-print('\nRetrieve ' + dataset + ' dataset...')
+print('Retrieve ' + dataset + ' dataset...\n')
 train_set, test_set = get_dataset()
 
-train_counter = []
-train_losses = []
-test_counter = [i * len(train_set.dataset) for i in range(n_epochs + 1)]
-test_losses = []
+train_counter, train_losses, test_counter, test_losses = [], [], [], []
 
 print('\nStart training from ' + dataset + ' training set to generate the model...')
 print('Epochs: ' + str(n_epochs) + '\nLearning rate: ' + str(learning_rate) + '\n')
 
 start_time = time.time()
 train()
-print('Elapsed time: {:.2f} seconds\n'.format(time.time() - start_time))
+print('Elapsed time: {:.2f} seconds\n'.format(time.time()-start_time))
 
 weights, neurons = calculate_sparsity()
-print('\nNeurons: {}\nSparsity {:.2f}%'.format(neurons, weights))
+print('Sparsity checking\nNeurons: {}\nSparsity {:.2f}%\n'.format(neurons, weights))
 
 samples = enumerate(test_set)
 batch_idx, (sample_data, sample_targets) = next(samples)
 
-show_image(sample_data[0], sample_targets[0])  # Show a random image from the test set
 print('Evaluation of a random sample: ' + str(inference(sample_data[0])))
+show_image(sample_data[0], sample_targets[0])  # Show a random image from the test set
 
 if plot_curve:
     plot_training_curve()
