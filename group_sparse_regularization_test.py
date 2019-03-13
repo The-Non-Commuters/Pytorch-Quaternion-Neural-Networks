@@ -369,7 +369,6 @@ for module in network.modules():
     print('--------------')
     print(module)
 
-
 print('Device used: ' + device.type)
 print('Network variant: ' + network.network_type())
 print('Number of trainable parameters: {}\n'.format(count_trainable_parameters()))
