@@ -26,7 +26,7 @@ import matplotlib.pyplot as plt
 import time
 
 # PARAMETERS #
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 dataset = 'CIFAR10'
 use_quaternion_variant = True
 plot_curve = True
@@ -42,12 +42,12 @@ batch_size_test = 1000
 regularization_factor = 0.0001
 regularizer = 'L2'
 
-regularizers = {
+'''regularizers = {
     'L1': lambda param: torch.sum(torch.abs(param)),
     'L2': lambda param: torch.sum(param ** 2),
     'Group L1': lambda param: torch.sum(np.sqrt(param.shape[0]) * torch.sqrt(torch.sum(param[0] ** 2))),
     'Sparse GL1': lambda param: regularizers['Group L1'](param) + regularizers['L1'](param)
-}
+}'''
 
 CIFAR10_num_to_classes = ['airplane', 'automobile', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck']
 
@@ -192,41 +192,42 @@ def regularization(regularization_type=None):
 
     reg = 0
 
-    if regularization_type in regularizers:
+    if regularization_type == 'L1':
+        for param in network.parameters():
+            reg += torch.sum(torch.abs(param))
 
-        quaternion_sum = None
+    elif regularization_type == 'L2':
+        for param in network.parameters():
+            reg += torch.sum(param ** 2)
+
+    elif regularization_type == 'Group L1':
+
+        square_mat_sum = None
 
         for param in network.parameters():
 
-            if regularization_type == 'Group L1' and use_quaternion_variant is True:
+            if param.dim() > 1:  # avoid biases if exist (one-dimensional arrays)
+                if square_mat_sum is not None and square_mat_sum.shape != param.shape:
+                    reg += torch.sum(torch.sqrt(square_mat_sum))
+                    square_mat_sum = None
+                square_mat_sum = param ** 2 if square_mat_sum is None else square_mat_sum + param ** 2
 
-                param = torch.abs(param)
-
-                #  print(param.shape)
-                # if param.dim() > 1:  # avoid biases if exist (one-dimensional arrays)
-                if quaternion_sum is None:
-                    quaternion_sum = param.clone()
-                elif quaternion_sum.shape != param.shape:
-                    reg += torch.sum(np.sqrt(quaternion_sum.shape[0]) * torch.sqrt(torch.sum(quaternion_sum[0] ** 2)))
-                    quaternion_sum = param.clone()
-                else:
-                    quaternion_sum += param
-            else:
-                reg += regularizers[regularization_type](param)
+    elif regularization_type == 'Sparse GL1':
+        reg += regularization('Group L1') + regularization('L1')
 
     return reg
 
 
 def calculate_sparsity():
-    sparsity_weights = []
-    sparsity_neurons = []
+    sparsity_weights, sparsity_neurons = [], []
 
     for param in network.parameters():
-        nonzero_weights = 1 - (param.detach().cpu().numpy().round(decimals=4).ravel().nonzero()[0].shape[0] /
-                               count_trainable_parameters())
+        param = param.to('cpu').detach().numpy().round(decimals=3)
+
+        nonzero_weights = 1 - (param.ravel().nonzero()[0].shape[0] / param.size)
         sparsity_weights.append(nonzero_weights)
 
-        nonzero_neurons = param.detach().cpu().numpy().round(decimals=4).sum(axis=0).nonzero()[0].shape[0]
+        nonzero_neurons = param.sum(axis=0).nonzero()[0].shape[0]
         sparsity_neurons.append(nonzero_neurons)
 
     sparsity_weights = np.mean(sparsity_weights) * 100
@@ -343,7 +344,7 @@ def plot_training_curve():
     plt.plot(train_counter, train_losses, color='blue')
     plt.scatter(test_counter, test_losses, color='red')
     plt.legend(['Train Loss', 'Test Loss'], loc='upper right')
-    plt.xlabel('number of training examples seen')
+    plt.xlabel('Number of training examples seen')
     plt.ylabel(loss_criterion.__name__.capitalize().replace('_', ' '))
     plt.show()
 
@@ -364,6 +365,11 @@ else:
 network = network.to(device)
 optimizer = optim.Adam(network.parameters(), lr=learning_rate)
 
+for module in network.modules():
+    print('--------------')
+    print(module)
+
+
 print('Device used: ' + device.type)
 print('Network variant: ' + network.network_type())
 print('Number of trainable parameters: {}\n'.format(count_trainable_parameters()))
@@ -381,7 +387,7 @@ train()
 print('Elapsed time: {:.2f} seconds\n'.format(time.time()-start_time))
 
 weights, neurons = calculate_sparsity()
-print('Sparsity checking\nNeurons: {}\nSparsity {:.2f}%\n'.format(neurons, weights))
+print('Checking sparsity...\nSparsity {:.2f}%\nNeurons: {}\n'.format(weights, neurons))
 
 samples = enumerate(test_set)
 batch_idx, (sample_data, sample_targets) = next(samples)
