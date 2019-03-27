@@ -40,7 +40,7 @@ class QRNN(nn.Module):
     def forward(self, x):
 
         # Init hidden states
-        h_init = Variable(torch.zeros(x.shape[1], self.hidden_dim))
+        h_init = torch.zeros(x.shape[1], self.hidden_dim)
 
         if self.CUDA:
             x = x.cuda()
@@ -100,7 +100,7 @@ class QLSTM(nn.Module):
 
     def forward(self, x):
 
-        h_init = Variable(torch.zeros(x.shape[1], self.hidden_dim))
+        h_init = torch.zeros(x.shape[1], self.hidden_dim)
 
         if self.CUDA:
             x = x.cuda()
@@ -156,7 +156,7 @@ class RNN(nn.Module):
     def forward(self, x):
 
         # Init hidden states
-        h_init = Variable(torch.zeros(x.shape[1], self.hidden_dim))
+        h_init = torch.zeros(x.shape[1], self.hidden_dim)
 
         if self.CUDA:
             x = x.cuda()
@@ -216,7 +216,7 @@ class LSTM(nn.Module):
 
     def forward(self, x):
 
-        h_init = Variable(torch.zeros(x.shape[1], self.hidden_dim))
+        h_init = torch.zeros(x.shape[1], self.hidden_dim)
 
         if self.CUDA:
             x = x.cuda()
