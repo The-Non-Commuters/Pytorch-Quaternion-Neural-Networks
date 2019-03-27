@@ -18,7 +18,7 @@ import sys
 import imageio
 
 # PARAMETERS #
-cuda = False
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 num_epochs = 3000
 learning_rate = 0.0005
 generation_rate = 100  # One test picture will be generated every 'generation_rate'
@@ -37,13 +37,7 @@ def main(argv):
 
     model = str(argv[1])
 
-    if model == 'QCAE':
-        net = QCAE()
-    else:
-        net = CAE()
-
-    if cuda:
-        net = net.cuda()
+    net = QCAE().to(device) if model == 'QCAE' else CAE().to(device)
 
     # MANAGING PICTURES #
 
@@ -57,8 +51,6 @@ def main(argv):
     # Normalizing
     train = train / 255
     test = test / 255
-
-    # HYPERPARAMETERS #
 
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
@@ -91,8 +83,8 @@ def main(argv):
         test = np.transpose(test, (2, 0, 1))
         test = np.reshape(test, (1, test.shape[0], test.shape[1], test.shape[2]))
 
-    train = torch.from_numpy(train).float().cpu()
-    test = torch.from_numpy(test).float().cpu()
+    train = torch.from_numpy(train).float().to(device)
+    test = torch.from_numpy(test).float().to(device)
 
     for epoch in range(num_epochs):
 
@@ -103,12 +95,12 @@ def main(argv):
         loss.backward()
         optimizer.step()
 
-        print("It : " + str(epoch + 1) + " | loss_train " + str(loss.cpu().data.numpy()))
+        print("It : " + str(epoch + 1) + " | loss_train " + str(loss.to('cpu').detach().numpy()))
 
         # If generation rate, generate a test image
         if (epoch % generation_rate) == 0:
             output = net(test)
-            out = output.cpu().data.numpy()
+            out = output.to('cpu').detach().numpy()
             if model == 'QCAE':
                 out = np.transpose(out, (0, 2, 3, 1))[:, :, :, 1:]
                 out = np.reshape(out, (out.shape[1], out.shape[2], out.shape[3]))
