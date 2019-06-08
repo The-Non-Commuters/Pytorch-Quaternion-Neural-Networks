@@ -190,7 +190,7 @@ class QuaternionBatchNorm2d(Module):
 
         delta_r, delta_i, delta_j, delta_k = r - quat_mean[0], i - quat_mean[1], j - quat_mean[2], k - quat_mean[3]
 
-        quat_variance = torch.mean((delta_r ** 2 + delta_i ** 2 + delta_j ** 2 + delta_k ** 2))
+        quat_variance = torch.mean((delta_r**2 + delta_i**2 + delta_j**2 + delta_k**2))
 
         denominator = torch.sqrt(quat_variance + self.eps)
 
