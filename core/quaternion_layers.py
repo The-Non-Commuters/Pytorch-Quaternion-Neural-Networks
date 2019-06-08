@@ -9,7 +9,7 @@
 from torch.nn import Module
 from torch.nn.parameter import Parameter
 
-from quaternion_ops import *
+from core.quaternion_ops import *
 
 
 class QuaternionTransposeConv(Module):
@@ -95,7 +95,8 @@ class QuaternionConv(Module):
 
     def __init__(self, in_channels, out_channels, kernel_size, stride,
                  dilatation=1, padding=0, groups=1, bias=True, init_criterion='glorot',
-                 weight_init='quaternion', seed=None, operation='convolution2d', rotation=False, quaternion_format=False):
+                 weight_init='quaternion', seed=None, operation='convolution2d', rotation=False,
+                 quaternion_format=False):
 
         super(QuaternionConv, self).__init__()
 
@@ -160,6 +161,68 @@ class QuaternionConv(Module):
                + ', weight_init=' + str(self.weight_init) \
                + ', seed=' + str(self.seed) \
                + ', operation=' + str(self.operation) + ')'
+
+
+class QuaternionBatchNorm2d(Module):
+    r"""Applies a 2D Quaternion Batch Normalization to the incoming data.
+        """
+
+    def __init__(self, num_features, training=True):
+
+        super(QuaternionBatchNorm2d, self).__init__()
+        self.num_features = num_features // 4
+        self.training = training
+        self.gamma = Parameter(torch.ones(self.num_features))
+        self.beta = Parameter(torch.zeros(self.num_features * 4))  # torch.zeros(self.num_features*4,device=device)
+        self.eps = torch.tensor(1e-5)
+
+    def reset_parameters(self):
+        self.gamma = Parameter(torch.ones(self.num_features))
+        self.beta = Parameter(torch.zeros(self.num_features * 4))
+
+    def forward(self, input):
+
+        quat_components = torch.chunk(input, 4, dim=1)
+
+        r, i, j, k = quat_components[0], quat_components[1], quat_components[2], quat_components[3]
+
+        quat_mean = (torch.mean(r), torch.mean(i), torch.mean(j), torch.mean(k))
+
+        delta_r, delta_i, delta_j, delta_k = r - quat_mean[0], i - quat_mean[1], j - quat_mean[2], k - quat_mean[3]
+
+        quat_variance = torch.mean((delta_r ** 2 + delta_i ** 2 + delta_j ** 2 + delta_k ** 2))
+
+        denominator = torch.sqrt(quat_variance + self.eps)
+
+        # Normalize
+        r_normalized = delta_r / denominator
+        i_normalized = delta_i / denominator
+        j_normalized = delta_j / denominator
+        k_normalized = delta_k / denominator
+
+        # Multiply gamma (stretch scale) and add beta (shift scale)
+        new_r, new_i, new_j, new_k = torch.empty_like(r), torch.empty_like(i), torch.empty_like(j), torch.empty_like(k)
+
+        for output_neuron in range(r.shape[1]):
+            new_r[:, output_neuron] = torch.add(torch.mul(r_normalized[:, output_neuron], self.gamma[output_neuron]),
+                                                self.beta[None, output_neuron])
+            new_i[:, output_neuron] = torch.add(torch.mul(i_normalized[:, output_neuron], self.gamma[output_neuron]),
+                                                self.beta[None, output_neuron + r.shape[1]])
+            new_j[:, output_neuron] = torch.add(torch.mul(j_normalized[:, output_neuron], self.gamma[output_neuron]),
+                                                self.beta[None, output_neuron + 2 * r.shape[1]])
+            new_k[:, output_neuron] = torch.add(torch.mul(k_normalized[:, output_neuron], self.gamma[output_neuron]),
+                                                self.beta[None, output_neuron + 3 * r.shape[1]])
+
+        new_input = torch.cat((new_r, new_i, new_j, new_k), dim=1)
+
+        return new_input
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(' \
+               + 'num_features=' + str(self.num_features) \
+               + ', gamma=' + str(self.gamma) \
+               + ', beta=' + str(self.beta) \
+               + ', eps=' + str(self.eps) + ')'
 
 
 class QuaternionLinearAutograd(Module):

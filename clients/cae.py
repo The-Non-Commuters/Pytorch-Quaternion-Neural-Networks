@@ -10,7 +10,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from convolutional_models import CAE, QCAE
+from models.convolutional_models import CAE, QCAE
 
 import os
 import shutil
@@ -32,7 +32,7 @@ def rgb2gray(rgb):
 def main(argv):
 
     if len(argv) != 2:
-        print("Please provide a model : QCAE or CAE")
+        print('Please provide a model : QCAE or CAE')
         exit(0)
 
     model = str(argv[1])
@@ -55,9 +55,9 @@ def main(argv):
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
     nb_param = sum(p.numel() for p in net.parameters() if p.requires_grad)
-    print("QCAE & CAE Color images - Titouan Parcollet - LIA, ORKIS")
-    print("Model Info --------------------")
-    print("Number of trainable parameters : " + str(nb_param))
+    print('QCAE & CAE Color images - Titouan Parcollet - LIA, ORKIS')
+    print('Model Info --------------------')
+    print('Number of trainable parameters : ' + str(nb_param))
 
     if model == 'QCAE':
 
@@ -95,7 +95,7 @@ def main(argv):
         loss.backward()
         optimizer.step()
 
-        print("It : " + str(epoch + 1) + " | loss_train " + str(loss.to('cpu').detach().numpy()))
+        print('It : ' + str(epoch + 1) + ' | loss_train ' + str(loss.to('cpu').detach().numpy()))
 
         # If generation rate, generate a test image
         if (epoch % generation_rate) == 0:
@@ -108,8 +108,8 @@ def main(argv):
                 out = np.transpose(out, (0, 2, 3, 1))
                 out = np.reshape(out, (out.shape[1], out.shape[2], out.shape[3]))
 
-            imageio.imsave("RES/save_image" + str(epoch) + ".png", out)
+            imageio.imsave('RES/save_image' + str(epoch) + '.png', out)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main(sys.argv)
