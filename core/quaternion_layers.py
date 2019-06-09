@@ -167,13 +167,13 @@ class QuaternionBatchNorm2d(Module):
     r"""Applies a 2D Quaternion Batch Normalization to the incoming data.
         """
 
-    def __init__(self, num_features, training=True):
+    def __init__(self, num_features, training=True, beta_param=True):
 
         super(QuaternionBatchNorm2d, self).__init__()
         self.num_features = num_features // 4
         self.training = training
         self.gamma = Parameter(torch.ones(self.num_features))
-        self.beta = Parameter(torch.zeros(self.num_features * 4))  # torch.zeros(self.num_features*4,device=device)
+        self.beta = Parameter(torch.zeros(self.num_features * 4)) if beta_param else torch.zeros(self.num_features * 4)
         self.eps = torch.tensor(1e-5)
 
     def reset_parameters(self):

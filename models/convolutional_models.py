@@ -105,7 +105,7 @@ class MNISTQConvNet(nn.Module):  # Quaternion CNN for MNIST
 
 class MNISTQConvNetBN(nn.Module):  # Quaternion CNN for MNIST
 
-    def __init__(self, use_qbn):
+    def __init__(self, use_qbn=True):
         super(MNISTQConvNetBN, self).__init__()
 
         self.act_fn = F.relu
@@ -194,7 +194,7 @@ class CIFARQConvNet(nn.Module):  # Quaternion CNN for CIFAR-10
 
 class CIFARQConvNetBN(nn.Module):  # Quaternion CNN for CIFAR-10
 
-    def __init__(self, use_qbn):
+    def __init__(self, use_qbn=True):
         super(CIFARQConvNetBN, self).__init__()
 
         self.act_fn = F.relu
