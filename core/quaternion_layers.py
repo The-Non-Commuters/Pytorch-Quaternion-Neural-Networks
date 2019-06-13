@@ -167,18 +167,19 @@ class QuaternionBatchNorm2d(Module):
     r"""Applies a 2D Quaternion Batch Normalization to the incoming data.
         """
 
-    def __init__(self, num_features, training=True, beta_param=True):
-
+    def __init__(self, num_features, gamma_init=1., beta_param=True, training=True):
         super(QuaternionBatchNorm2d, self).__init__()
         self.num_features = num_features // 4
+        self.gamma_init = gamma_init
+        self.beta_param = beta_param
+        self.gamma = Parameter(torch.full([1, self.num_features, 1, 1], self.gamma_init))
+        self.beta = Parameter(torch.zeros(1, self.num_features * 4, 1, 1), requires_grad=self.beta_param)
         self.training = training
-        self.gamma = Parameter(torch.ones(self.num_features))
-        self.beta = Parameter(torch.zeros(self.num_features * 4)) if beta_param else torch.zeros(self.num_features * 4)
         self.eps = torch.tensor(1e-5)
 
     def reset_parameters(self):
-        self.gamma = Parameter(torch.ones(self.num_features))
-        self.beta = Parameter(torch.zeros(self.num_features * 4))
+        self.gamma = Parameter(torch.full([1, self.num_features, 1, 1], self.gamma_init))
+        self.beta = Parameter(torch.zeros(1, self.num_features * 4, 1, 1), requires_grad=self.beta_param)
 
     def forward(self, input):
 
@@ -186,9 +187,7 @@ class QuaternionBatchNorm2d(Module):
 
         r, i, j, k = quat_components[0], quat_components[1], quat_components[2], quat_components[3]
 
-        quat_mean = (torch.mean(r), torch.mean(i), torch.mean(j), torch.mean(k))
-
-        delta_r, delta_i, delta_j, delta_k = r - quat_mean[0], i - quat_mean[1], j - quat_mean[2], k - quat_mean[3]
+        delta_r, delta_i, delta_j, delta_k = r - torch.mean(r), i - torch.mean(i), j - torch.mean(j), k - torch.mean(k)
 
         quat_variance = torch.mean((delta_r**2 + delta_i**2 + delta_j**2 + delta_k**2))
 
@@ -200,18 +199,13 @@ class QuaternionBatchNorm2d(Module):
         j_normalized = delta_j / denominator
         k_normalized = delta_k / denominator
 
-        # Multiply gamma (stretch scale) and add beta (shift scale)
-        new_r, new_i, new_j, new_k = torch.empty_like(r), torch.empty_like(i), torch.empty_like(j), torch.empty_like(k)
+        beta_components = torch.chunk(self.beta, 4, dim=1)
 
-        for output_neuron in range(r.shape[1]):
-            new_r[:, output_neuron] = torch.add(torch.mul(r_normalized[:, output_neuron], self.gamma[output_neuron]),
-                                                self.beta[None, output_neuron])
-            new_i[:, output_neuron] = torch.add(torch.mul(i_normalized[:, output_neuron], self.gamma[output_neuron]),
-                                                self.beta[None, output_neuron + r.shape[1]])
-            new_j[:, output_neuron] = torch.add(torch.mul(j_normalized[:, output_neuron], self.gamma[output_neuron]),
-                                                self.beta[None, output_neuron + 2 * r.shape[1]])
-            new_k[:, output_neuron] = torch.add(torch.mul(k_normalized[:, output_neuron], self.gamma[output_neuron]),
-                                                self.beta[None, output_neuron + 3 * r.shape[1]])
+        # Multiply gamma (stretch scale) and add beta (shift scale)
+        new_r = (self.gamma * r_normalized) + beta_components[0]
+        new_i = (self.gamma * i_normalized) + beta_components[1]
+        new_j = (self.gamma * j_normalized) + beta_components[2]
+        new_k = (self.gamma * k_normalized) + beta_components[3]
 
         new_input = torch.cat((new_r, new_i, new_j, new_k), dim=1)
 
