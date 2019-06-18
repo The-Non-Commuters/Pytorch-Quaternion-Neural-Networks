@@ -7,18 +7,9 @@
 ##########################################################
 
 from skimage.measure import compare_ssim as ssim
+from utils.misc import psnr
 import imageio
-import numpy
-import math
 import sys
-
-
-def psnr(img1, img2):
-    mse = numpy.mean((img1 - img2) ** 2)
-    if mse == 0:
-        return 100
-    pixel_max = 255.0
-    return 20 * math.log10(pixel_max / math.sqrt(mse))
 
 
 if len(sys.argv) != 3:

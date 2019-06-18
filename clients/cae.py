@@ -12,8 +12,8 @@ from torch import nn
 
 from models.convolutional_models import CAE, QCAE
 
-import os
-import shutil
+from utils.misc import empty_directory, rgb2gray
+
 import sys
 import imageio
 
@@ -22,11 +22,6 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 num_epochs = 3000
 learning_rate = 0.0005
 generation_rate = 100  # One test picture will be generated every 'generation_rate'
-
-
-def rgb2gray(rgb):
-    gray = np.dot(rgb[..., :3], [0.299, 0.587, 0.114])
-    return np.repeat(gray[:, :, np.newaxis], 3, axis=2)
 
 
 def main(argv):
@@ -40,12 +35,9 @@ def main(argv):
     net = QCAE().to(device) if model == 'QCAE' else CAE().to(device)
 
     # MANAGING PICTURES #
+    empty_directory('RES')
 
-    if os.path.exists('RES'):
-        shutil.rmtree('RES')
-    os.mkdir('RES')
-
-    train = rgb2gray(imageio.imread('KODAK/kodim05.png'))
+    train = rgb2gray(imageio.imread('KODAK/kodim05.png'), True)
     test = imageio.imread('KODAK/kodim23.png')
 
     # Normalizing
@@ -60,28 +52,18 @@ def main(argv):
     print('Number of trainable parameters : ' + str(nb_param))
 
     if model == 'QCAE':
-
         # Add a 0 as real component if quaternions (padding)
         npad = ((0, 0), (0, 0), (1, 0))
         train = np.pad(train, pad_width=npad, mode='constant', constant_values=0)
-        # Channel first
-        train = np.transpose(train, (2, 0, 1))
-        # Add batch_size dim
-        train = np.reshape(train, (1, train.shape[0], train.shape[1], train.shape[2]))
-
         test = np.pad(test, pad_width=npad, mode='constant', constant_values=0)
-        test = np.transpose(test, (2, 0, 1))
-        test = np.reshape(test, (1, test.shape[0], test.shape[1], test.shape[2]))
 
-    else:
+    # Channel first
+    train = np.transpose(train, (2, 0, 1))
+    test = np.transpose(test, (2, 0, 1))
 
-        # Channel first
-        train = np.transpose(train, (2, 0, 1))
-        # Add batch_size dim
-        train = np.reshape(train, (1, train.shape[0], train.shape[1], train.shape[2]))
-
-        test = np.transpose(test, (2, 0, 1))
-        test = np.reshape(test, (1, test.shape[0], test.shape[1], test.shape[2]))
+    # Add batch_size dim
+    train = np.reshape(train, (1, train.shape[0], train.shape[1], train.shape[2]))
+    test = np.reshape(test, (1, test.shape[0], test.shape[1], test.shape[2]))
 
     train = torch.from_numpy(train).float().to(device)
     test = torch.from_numpy(test).float().to(device)
@@ -101,12 +83,9 @@ def main(argv):
         if (epoch % generation_rate) == 0:
             output = net(test)
             out = output.to('cpu').detach().numpy()
-            if model == 'QCAE':
-                out = np.transpose(out, (0, 2, 3, 1))[:, :, :, 1:]
-                out = np.reshape(out, (out.shape[1], out.shape[2], out.shape[3]))
-            else:
-                out = np.transpose(out, (0, 2, 3, 1))
-                out = np.reshape(out, (out.shape[1], out.shape[2], out.shape[3]))
+
+            out = np.transpose(out, (0, 2, 3, 1))[:, :, :, 1:] if model == 'QCAE' else np.transpose(out, (0, 2, 3, 1))
+            out = np.reshape(out, (out.shape[1], out.shape[2], out.shape[3]))
 
             imageio.imsave('RES/save_image' + str(epoch) + '.png', out)
 
