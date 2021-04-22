@@ -9,7 +9,7 @@
 import torch.optim
 from torch import nn
 
-from core.quaternion_layers import *
+from ..core.quaternion_layers import *
 
 
 #

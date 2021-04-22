@@ -8,7 +8,7 @@
 
 from torch import nn
 
-from core.quaternion_layers import *
+from ..core.quaternion_layers import *
 
 #
 # Models are intended to work with clients in /clients

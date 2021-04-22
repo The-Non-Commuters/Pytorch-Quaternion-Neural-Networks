@@ -9,7 +9,7 @@
 from torch.nn import Module
 from torch.nn.parameter import Parameter
 
-from core.quaternion_ops import *
+from .quaternion_ops import *
 
 
 class QuaternionTransposeConv(Module):
