@@ -9,7 +9,7 @@
 from torch.nn import Module
 from torch.nn.parameter import Parameter
 
-from .quaternion_ops import *
+from .ops import *
 
 
 class QuaternionTransposeConv(Module):
@@ -167,29 +167,34 @@ class QuaternionBatchNorm2d(Module):
     r"""Applies a 2D Quaternion Batch Normalization to the incoming data.
         """
 
-    def __init__(self, num_features, gamma_init=1., beta_param=True, training=True):
+    def __init__(self, num_features, eps=1e-05, momentum=0.1, gamma_init=1., affine=True):
         super(QuaternionBatchNorm2d, self).__init__()
         self.num_features = num_features // 4
+        self.eps = eps
+        self.momentum = momentum
         self.gamma_init = gamma_init
-        self.beta_param = beta_param
-        self.gamma = Parameter(torch.full([1, self.num_features, 1, 1], self.gamma_init))
-        self.beta = Parameter(torch.zeros(1, self.num_features * 4, 1, 1), requires_grad=self.beta_param)
-        self.training = training
-        self.eps = torch.tensor(1e-5)
+        self.affine = affine
+        if self.affine:
+            self.gamma = Parameter(torch.full([1, self.num_features, 1, 1], self.gamma_init))
+            self.beta = Parameter(torch.zeros(1, self.num_features * 4, 1, 1))
+        else:
+            self.register_parameter('gamma', None)
+            self.register_parameter('beta', None)
 
     def reset_parameters(self):
-        self.gamma = Parameter(torch.full([1, self.num_features, 1, 1], self.gamma_init))
-        self.beta = Parameter(torch.zeros(1, self.num_features * 4, 1, 1), requires_grad=self.beta_param)
+        if self.affine:
+            self.gamma = Parameter(torch.full([1, self.num_features, 1, 1], self.gamma_init))
+            self.beta = Parameter(torch.zeros(1, self.num_features * 4, 1, 1))
 
     def forward(self, input):
 
         quat_components = torch.chunk(input, 4, dim=1)
 
-        r, i, j, k = quat_components[0], quat_components[1], quat_components[2], quat_components[3]
+        dims = (0, *range(2, input.dim()))
 
-        delta_r, delta_i, delta_j, delta_k = r - torch.mean(r), i - torch.mean(i), j - torch.mean(j), k - torch.mean(k)
+        delta_r, delta_i, delta_j, delta_k = map(lambda x: x - x.mean(dim=dims, keepdim=True), quat_components)
 
-        quat_variance = torch.mean((delta_r**2 + delta_i**2 + delta_j**2 + delta_k**2))
+        quat_variance = torch.mean((delta_r**2 + delta_i**2 + delta_j**2 + delta_k**2), dim=dims, keepdim=True)
 
         denominator = torch.sqrt(quat_variance + self.eps)
 
@@ -201,11 +206,14 @@ class QuaternionBatchNorm2d(Module):
 
         beta_components = torch.chunk(self.beta, 4, dim=1)
 
-        # Multiply gamma (stretch scale) and add beta (shift scale)
-        new_r = (self.gamma * r_normalized) + beta_components[0]
-        new_i = (self.gamma * i_normalized) + beta_components[1]
-        new_j = (self.gamma * j_normalized) + beta_components[2]
-        new_k = (self.gamma * k_normalized) + beta_components[3]
+        if self.affine:
+            # Multiply gamma (stretch scale) and add beta (shift scale)
+            new_r = (self.gamma * r_normalized) + beta_components[0]
+            new_i = (self.gamma * i_normalized) + beta_components[1]
+            new_j = (self.gamma * j_normalized) + beta_components[2]
+            new_k = (self.gamma * k_normalized) + beta_components[3]
+        else:
+            new_r, new_i, new_j, new_k = r_normalized, i_normalized, j_normalized, k_normalized
 
         new_input = torch.cat((new_r, new_i, new_j, new_k), dim=1)
 

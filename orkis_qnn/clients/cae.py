@@ -10,7 +10,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from ..models.convolutional_models import CAE, QCAE
+from ..models.convolutional import CAE, QCAE
 
 from ..utils.misc import empty_directory, rgb2gray
 

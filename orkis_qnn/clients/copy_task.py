@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 import torch.optim
 
-from ..models.recurrent_models import LSTM, QLSTM
+from ..models.recurrent import LSTM, QLSTM
 
 import numpy as np
 
