@@ -8,6 +8,7 @@
 
 from torch.nn import Module
 from torch.nn.parameter import Parameter
+from torch.nn import init
 
 from .ops import *
 
@@ -161,6 +162,127 @@ class QuaternionConv(Module):
                + ', weight_init=' + str(self.weight_init) \
                + ', seed=' + str(self.seed) \
                + ', operation=' + str(self.operation) + ')'
+
+
+##########
+
+class QBatchNorm2d(Module):
+    """
+    Quaternion batch normalization 2d
+    """
+
+    def __init__(self,
+                 in_channels,
+                 affine=True,
+                 training=True,
+                 eps=1e-5,
+                 momentum=0.9,
+                 track_running_stats=True):
+        """
+        @type in_channels: int
+        @type affine: bool
+        @type training: bool
+        @type eps: float
+        @type momentum: float
+        @type track_running_stats: bool
+        """
+        super(QBatchNorm2d, self).__init__()
+        self.in_channels = in_channels // 4
+
+        self.affine = affine
+        self.training = training
+        self.track_running_stats = track_running_stats
+        self.register_buffer('eye', torch.diag(torch.cat([torch.Tensor([eps])]*4)).unsqueeze(0))
+
+        if self.affine:
+            self.weight = torch.nn.Parameter(torch.zeros(4, 4, self.in_channels))
+            self.bias = torch.nn.Parameter(torch.zeros(4, self.in_channels))
+        else:
+            self.register_parameter('weight', None)
+            self.register_parameter('bias', None)
+
+        if self.track_running_stats:
+            self.register_buffer('running_mean', torch.zeros(4, self.in_channels))
+            self.register_buffer('running_cov', torch.zeros(self.in_channels, 4, 4))
+        else:
+            self.register_parameter('running_mean', None)
+            self.register_parameter('running_cov', None)
+
+        self.momentum = momentum
+
+        self.reset_parameters()
+
+    def reset_running_stats(self):
+        if self.track_running_stats:
+            self.running_mean.zero_()
+            self.running_cov.zero_()
+
+    def reset_parameters(self):
+        self.reset_running_stats()
+        if self.affine:
+            init.constant_(self.weight[0, 0], 0.5)
+            init.constant_(self.weight[1, 1], 1)
+            init.constant_(self.weight[2, 2], 1)
+            init.constant_(self.weight[3, 3], 1)
+
+    def forward(self, x):
+        x = torch.stack(torch.chunk(x, 4, 1), 1).permute(1, 0, 2, 3, 4)
+        axes, d = (1, *range(3, x.dim())), x.shape[0]
+        shape = 1, x.shape[2], *([1] * (x.dim() - 3))
+
+        if self.training:
+            mean = x.mean(dim=axes)
+            if self.running_mean is not None:
+                with torch.no_grad():
+                    self.running_mean = self.momentum * self.running_mean +\
+                                        (1.0 - self.momentum) * mean
+        else:
+            mean = self.running_mean
+
+        x = x - mean.reshape(d, *shape)
+
+        if self.training:
+            perm = x.permute(2, 0, *axes).flatten(2, -1)
+            cov = torch.matmul(perm, perm.transpose(-1, -2)) / perm.shape[-1]
+
+            if self.running_cov is not None:
+                with torch.no_grad():
+                    self.running_cov = self.momentum * self.running_cov +\
+                                             (1.0 - self.momentum) * cov
+
+        else:
+            cov = self.running_cov
+
+        euu = torch.cholesky(cov + self.eye, upper=False)
+
+        soln = torch.triangular_solve(
+            x.unsqueeze(-1).permute(*range(1, x.dim()), 0, -1),
+            euu.reshape(*shape, d, d),
+            upper=False
+        )
+
+        invsq_cov = soln.solution.squeeze(-1)
+
+        z = torch.stack(torch.unbind(invsq_cov, dim=-1), dim=0)
+
+        if self.affine:
+            weight = self.weight.view(4, 4, *shape)
+            scaled = torch.stack([
+                z[0] * weight[0, 0] + z[1] * weight[0, 1] + z[2] * weight[0, 2] + z[3] * weight[0, 3],
+                z[0] * weight[1, 0] + z[1] * weight[1, 1] + z[2] * weight[1, 2] + z[3] * weight[1, 3],
+                z[0] * weight[2, 0] + z[1] * weight[2, 1] + z[2] * weight[2, 2] + z[3] * weight[2, 3],
+                z[0] * weight[3, 0] + z[1] * weight[3, 1] + z[2] * weight[3, 2] + z[3] * weight[3, 3],
+            ], dim=0)
+            z = scaled + self.bias.reshape(4, *shape)
+
+        z = torch.cat(torch.chunk(z, 4, 0), 2)
+        for _ in range(z.dim()-4):
+            z.squeeze_(0)
+
+        return z
+
+
+###########
 
 
 class QuaternionBatchNorm2d(Module):
