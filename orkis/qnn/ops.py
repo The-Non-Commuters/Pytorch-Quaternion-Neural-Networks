@@ -358,7 +358,7 @@ def quaternion_linear_rotation(input, r_weight, i_weight, j_weight, k_weight, bi
 
 
 # Custom AUTOGRAD for lower VRAM consumption
-class QuaternionLinearFunction(torch.autograd.Function):
+class QLinearFunction(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, input, r_weight, i_weight, j_weight, k_weight, bias=None):

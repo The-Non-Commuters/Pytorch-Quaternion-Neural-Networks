@@ -6,14 +6,14 @@
 # October 2018
 ##########################################################
 
-from torch.nn import Module
+import torch
+import torch.nn as nn
 from torch.nn.parameter import Parameter
-from torch.nn import init
 
 from .ops import *
 
 
-class QuaternionTransposeConv(Module):
+class QTransposeConv(nn.Module):
     r"""Applies a Quaternion Transposed Convolution (or Deconvolution) to the incoming data.
     """
 
@@ -22,7 +22,7 @@ class QuaternionTransposeConv(Module):
                  weight_init='quaternion', seed=None, operation='convolution2d', rotation=False,
                  quaternion_format=False):
 
-        super(QuaternionTransposeConv, self).__init__()
+        super(QTransposeConv, self).__init__()
 
         self.in_channels = in_channels // 4
         self.out_channels = out_channels // 4
@@ -90,7 +90,7 @@ class QuaternionTransposeConv(Module):
                + ', operation=' + str(self.operation) + ')'
 
 
-class QuaternionConv(Module):
+class _QConv(nn.Module):
     r"""Applies a Quaternion Convolution to the incoming data.
     """
 
@@ -99,7 +99,7 @@ class QuaternionConv(Module):
                  weight_init='quaternion', seed=None, operation='convolution2d', rotation=False,
                  quaternion_format=False):
 
-        super(QuaternionConv, self).__init__()
+        super(_QConv, self).__init__()
 
         self.in_channels = in_channels // 4
         self.out_channels = out_channels // 4
@@ -164,18 +164,37 @@ class QuaternionConv(Module):
                + ', operation=' + str(self.operation) + ')'
 
 
-class QuaternionBatchNorm2d(Module):
+class QConv1d(_QConv):
 
-    def __new__(cls, *args, mode="covariance", **kwargs):
-        if mode == "variance":
-            return _VarianceQuaternionBatchNorm2d(*args, **kwargs)
-        elif mode == "covariance":
-            return _CovarianceQuaternionBatchNorm2d(*args, **kwargs)
-        else:
-            raise ValueError(f"unrecognized mode: {mode}")
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, operation="convolution1d", **kwargs)
+
+    def forward(self, input):
+        assert input.dim() == 3
+        return super().forward(input)
 
 
-class _VarianceQuaternionBatchNorm2d(Module):
+class QConv2d(_QConv):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, operation="convolution2d", **kwargs)
+
+    def forward(self, input):
+        assert input.dim() == 4
+        return super().forward(input)
+
+
+class QConv3d(_QConv):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, operation="convolution3d", **kwargs)
+
+    def forward(self, input):
+        assert input.dim() == 5
+        return super().forward(input)
+
+
+class _VarianceQBatchNorm2d(nn.Module):
     r"""Applies a 2D Quaternion Batch Normalization to the incoming data.
         """
 
@@ -239,7 +258,7 @@ class _VarianceQuaternionBatchNorm2d(Module):
                + ', eps=' + str(self.eps) + ')'
 
 
-class _CovarianceQuaternionBatchNorm2d(Module):
+class _CovarianceQBatchNorm2d(nn.Module):
     """
     Quaternion batch normalization 2d
     """
@@ -286,10 +305,10 @@ class _CovarianceQuaternionBatchNorm2d(Module):
     def reset_parameters(self):
         self.reset_running_stats()
         if self.affine:
-            init.constant_(self.weight[0, 0], 0.5)
-            init.constant_(self.weight[1, 1], 1)
-            init.constant_(self.weight[2, 2], 1)
-            init.constant_(self.weight[3, 3], 1)
+            nn.init.constant_(self.weight[0, 0], 0.5)
+            nn.init.constant_(self.weight[1, 1], 1)
+            nn.init.constant_(self.weight[2, 2], 1)
+            nn.init.constant_(self.weight[3, 3], 1)
 
     def forward(self, x):
         x = torch.stack(torch.chunk(x, 4, 1), 1).permute(1, 0, 2, 3, 4)
@@ -348,17 +367,28 @@ class _CovarianceQuaternionBatchNorm2d(Module):
         return z
 
 
-class QuaternionLinearAutograd(Module):
+class QBatchNorm2d(nn.Module):
+
+    def __new__(cls, *args, mode="covariance", **kwargs):
+        if mode == "variance":
+            return _VarianceQBatchNorm2d(*args, **kwargs)
+        elif mode == "covariance":
+            return _CovarianceQBatchNorm2d(*args, **kwargs)
+        else:
+            raise ValueError(f"unrecognized mode: {mode}")
+
+
+class QLinearAutograd(nn.Module):
     r"""Applies a quaternion linear transformation to the incoming data. A custom
     Autograd function is call to drastically reduce the VRAM consumption. Nonetheless, computing
-    time is also slower compared to QuaternionLinear().
+    time is also slower compared to QLinear().
     """
 
     def __init__(self, in_features, out_features, bias=True,
                  init_criterion='glorot', weight_init='quaternion',
                  seed=None, rotation=False, quaternion_format=False):
 
-        super(QuaternionLinearAutograd, self).__init__()
+        super(QLinearAutograd, self).__init__()
         self.in_features = in_features // 4
         self.out_features = out_features // 4
         self.rotation = rotation
@@ -403,7 +433,7 @@ class QuaternionLinearAutograd(Module):
                + ', seed=' + str(self.seed) + ')'
 
 
-class QuaternionLinear(Module):
+class QLinear(nn.Module):
     r"""Applies a quaternion linear transformation to the incoming data.
     """
 
@@ -411,7 +441,7 @@ class QuaternionLinear(Module):
                  init_criterion='glorot', weight_init='quaternion',
                  seed=None):
 
-        super(QuaternionLinear, self).__init__()
+        super(QLinear, self).__init__()
         self.in_features = in_features // 4
         self.out_features = out_features // 4
         self.r_weight = Parameter(torch.Tensor(self.in_features, self.out_features))
@@ -443,11 +473,11 @@ class QuaternionLinear(Module):
         if input.dim() == 3:
             T, N, C = input.size()
             input = input.view(T * N, C)
-            output = QuaternionLinearFunction.apply(input, self.r_weight, self.i_weight, self.j_weight, self.k_weight,
+            output = QLinearFunction.apply(input, self.r_weight, self.i_weight, self.j_weight, self.k_weight,
                                                     self.bias)
             output = output.view(T, N, output.size(1))
         elif input.dim() == 2:
-            output = QuaternionLinearFunction.apply(input, self.r_weight, self.i_weight, self.j_weight, self.k_weight,
+            output = QLinearFunction.apply(input, self.r_weight, self.i_weight, self.j_weight, self.k_weight,
                                                     self.bias)
         else:
             raise NotImplementedError
@@ -462,3 +492,87 @@ class QuaternionLinear(Module):
                + ', init_criterion=' + str(self.init_criterion) \
                + ', weight_init=' + str(self.weight_init) \
                + ', seed=' + str(self.seed) + ')'
+
+
+class QuaternionToReal(nn.Module):
+    """
+    Casts to real by its norm
+    """
+    
+    def __init__(self, in_channels):
+        super(QuaternionToReal, self).__init__()
+        self.in_channels = in_channels
+    
+    def forward(self, x, quat_format=False):
+        chunked = torch.stack(torch.chunk(x, 4, 1), 2)
+        norm = torch.linalg.norm(chunked, dim=2)
+    
+        if quat_format:
+            if norm.dim() == 1:
+                out = torch.cat([norm,*[torch.zeros_like(norm)]*3], 0)
+            else:
+                out = torch.cat([norm,*[torch.zeros_like(norm)]*3], 1)
+        else:
+            out = norm
+            
+        return out
+
+
+# reference https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=8632910
+class QMaxPool2d(nn.Module):
+    """
+    Quaternion max pooling 2d
+    """
+
+    def __init__(self, kernel_size, stride=None, padding=0, dilation=1, ceil_mode=False):
+        """
+        @type kernel_size: int/tuple/list
+        @type stride: int/tuple/list
+        @type padding: int
+        """
+        super(QMaxPool2d, self).__init__()
+        self.pool = nn.MaxPool2d(kernel_size, stride, padding, dilation, return_indices=True, ceil_mode=ceil_mode)
+
+    def forward(self, x):
+        chunked = torch.stack(torch.chunk(x, 4, 1), 2)
+        norm = torch.linalg.norm(chunked, dim=2)
+        _, idx = self.pool(norm)
+        idx = idx.repeat(1, 4, 1, 1)
+        flat = x.flatten(start_dim=2)
+        output = flat.gather(dim=2, index=idx.flatten(start_dim=2)).view_as(idx)
+        return output
+
+    
+class QModReLU(nn.Module):
+    """
+    Quaternion ModeReLU
+    """
+    def __init__(self, bias=0):
+        super().__init__()
+        self.bias = torch.nn.Parameter(torch.Tensor([bias]))
+
+    def forward(self, x):
+        norm = x.norm()
+        return F.relu(norm + self.bias) * (x / norm)
+
+
+class QDropout(nn.Dropout2d):
+    """
+    Quaternion Dropout
+    """
+    def forward(self, x):
+        x = torch.stack(torch.chunk(x, 4, 1), 2)
+        x = super().forward(x)
+        x = x.transpose(2, 1).flatten(start_dim=1, end_dim=2)
+        return x
+
+
+class QDropout2d(nn.Dropout3d):
+    """
+    Quaternion Dropout2d
+    """
+    def forward(self, x):
+        x = torch.stack(torch.chunk(x, 4, 1), 2)
+        x = super().forward(x)
+        x = x.transpose(2, 1).flatten(start_dim=1, end_dim=2)
+        return x
