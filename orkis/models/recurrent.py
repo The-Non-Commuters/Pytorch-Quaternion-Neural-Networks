@@ -9,7 +9,7 @@
 import torch.optim
 from torch import nn
 
-from ..core.layers import *
+from ..qnn import *
 
 
 #

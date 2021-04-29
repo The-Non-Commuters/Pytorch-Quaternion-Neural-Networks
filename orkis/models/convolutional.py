@@ -8,7 +8,7 @@
 
 from torch import nn
 
-from ..core.layers import *
+from ..qnn import *
 
 #
 # Models are intended to work with clients in /clients

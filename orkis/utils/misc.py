@@ -7,8 +7,8 @@ import shutil
 import torch
 from   torch.autograd   import Variable, Function
 import torch.nn         as nn
-from   ..core.ops       import *
-from   ..core.layers    import *
+from   ..qnn.ops       import *
+from   ..qnn    import *
 
 
 def psnr(image1, image2):
