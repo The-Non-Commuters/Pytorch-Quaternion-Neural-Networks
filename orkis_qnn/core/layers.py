@@ -253,11 +253,11 @@ class QBatchNorm2d(Module):
         else:
             cov = self.running_cov
 
-        euu = torch.cholesky(cov + self.eye, upper=False)
+        ell = torch.linalg.cholesky(cov + self.eye)
 
         soln = torch.triangular_solve(
             x.unsqueeze(-1).permute(*range(1, x.dim()), 0, -1),
-            euu.reshape(*shape, d, d),
+            ell.reshape(*shape, d, d),
             upper=False
         )
 
