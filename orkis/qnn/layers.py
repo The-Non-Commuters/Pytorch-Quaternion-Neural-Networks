@@ -13,7 +13,7 @@ from torch.nn.parameter import Parameter
 from .ops import *
 
 
-class QTransposeConv(nn.Module):
+class _QTransposeConv(nn.Module):
     r"""Applies a Quaternion Transposed Convolution (or Deconvolution) to the incoming data.
     """
 
@@ -22,7 +22,7 @@ class QTransposeConv(nn.Module):
                  weight_init='quaternion', seed=None, operation='convolution2d', rotation=False,
                  quaternion_format=False):
 
-        super(QTransposeConv, self).__init__()
+        super(_QTransposeConv, self).__init__()
 
         self.in_channels = in_channels // 4
         self.out_channels = out_channels // 4
@@ -88,6 +88,36 @@ class QTransposeConv(nn.Module):
                + ', weight_init=' + str(self.weight_init) \
                + ', seed=' + str(self.seed) \
                + ', operation=' + str(self.operation) + ')'
+
+
+class QTransposeConv1d(_QTransposeConv):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, operation="convolution1d", **kwargs)
+
+    def forward(self, input):
+        assert input.dim() == 3
+        return super().forward(input)
+
+
+class QTransposeConv2d(_QTransposeConv):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, operation="convolution2d", **kwargs)
+
+    def forward(self, input):
+        assert input.dim() == 4
+        return super().forward(input)
+
+
+class QTransposeConv3d(_QTransposeConv):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, operation="convolution3d", **kwargs)
+
+    def forward(self, input):
+        assert input.dim() == 5
+        return super().forward(input)
 
 
 class _QConv(nn.Module):
