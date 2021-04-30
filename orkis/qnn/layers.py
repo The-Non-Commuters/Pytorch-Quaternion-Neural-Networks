@@ -499,11 +499,8 @@ class QuaternionToReal(nn.Module):
     Casts to real by its norm
     """
     
-    def __init__(self, in_channels):
-        super(QuaternionToReal, self).__init__()
-        self.in_channels = in_channels
-    
     def forward(self, x, quat_format=False):
+        assert (x.size(1) % 4) == 0
         chunked = torch.stack(torch.chunk(x, 4, 1), 2)
         norm = torch.linalg.norm(chunked, dim=2)
     
