@@ -701,3 +701,12 @@ def get_kernel_and_weight_shape(operation, in_channels, out_channels, kernel_siz
                 ks = kernel_size
         w_shape = (out_channels, in_channels) + (*ks,)
     return ks, w_shape
+
+def qmax_pool2d(x, *args, **kwargs):
+    chunked = torch.stack(torch.chunk(x, 4, 1), 2)
+    norm = torch.linalg.norm(chunked, dim=2)
+    _, idx = F.max_pool2d_with_indices(norm, *args, return_indices=True, **kwargs)
+    idx = idx.repeat(1, 4, 1, 1)
+    flat = x.flatten(start_dim=2)
+    output = flat.gather(dim=2, index=idx.flatten(start_dim=2)).view_as(idx)
+    return output
