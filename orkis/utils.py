@@ -9,8 +9,8 @@ from   torch.autograd   import Variable, Function
 import torch.nn         as nn
 import torchvision
 
-from   ..qnn.ops       import *
-from   ..qnn    import *
+from   .qnn.ops       import *
+from   .qnn    import *
 
 
 def psnr(image1, image2):
